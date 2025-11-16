@@ -916,6 +916,42 @@ let bullets = [];
 
     shootBtn.addEventListener('touchstart', onShootPress, { passive: false });
     shootBtn.addEventListener('mousedown', onShootPress, { passive: false });
+
+    // --- NEW: Keyboard Listeners ---
+    window.addEventListener('keydown', (e) => {
+      // Check for arrow keys to move
+      if (e.key === 'ArrowLeft') {
+        moveLeft = true;
+        e.preventDefault(); // Prevent window scrolling
+      } else if (e.key === 'ArrowRight') {
+        moveRight = true;
+        e.preventDefault(); // Prevent window scrolling
+      } else if (e.key === ' ' || e.key === 'Spacebar') {
+        // Use the same logic as the shoot button
+        // This handles both shooting and restarting on game over
+        if (gameOver) {
+          restartGame();
+        } else {
+          shoot();
+        }
+        e.preventDefault(); // Prevent spacebar from scrolling page
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      // Check for arrow keys to stop moving
+      if (e.key === 'ArrowLeft') {
+        moveLeft = false;
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        moveRight = false;
+        e.preventDefault();
+      } else if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        // No action needed on keyup for 'shoot', as the cooldown
+        // in the shoot() function already handles rapid-fire.
+      }
+    });
   }
   
   // Set up the new controls

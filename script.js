@@ -66,8 +66,6 @@ let bullets = [];
 
   const sightWords = [
     "the","and","to","of","a","in","is","you","that","it",
-    "he","was","for","on","are","as","with","his","they","I",
-    "at","be","this","have","from","or","one","had","by","word",
     "but","not","what","all","were","we","when","your","can","said",
     "there","use","an","each","which","she","do","how","their","if"
   ];

@@ -71,10 +71,9 @@ let bullets = [];
   const rightBtn = document.getElementById('right-btn');
   const shootBtn = document.getElementById('shoot-btn');
 
-const sightWords = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  .split("")
-  .map(letter => `The letter "${letter}".`);
-
+  const sightWords = [
+    "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+  ];
 
   function resize() {
     // Keep CSS layout (var(--app-height)) in sync with the real viewport height.

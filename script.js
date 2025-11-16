@@ -809,11 +809,8 @@ const sightWords = [
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.font = "10px 'Press Start 2P'";
-    ctx.fillText("Level: " + level, 10, 8);
-    ctx.fillText("Score: " + score, 10, 26);
-    ctx.fillText("Streak: " + hitsThisLevel + " / " + hitsPerLevel, 10, 44);
-
-    // Target word text removed (now audio-only)
+    const hudText = "Level: " + level + "   Score: " + score;
+    ctx.fillText(hudText, 10, 8);
 
     // --- NEW: Level Up Animation ---
     if (isLevelingUp) {

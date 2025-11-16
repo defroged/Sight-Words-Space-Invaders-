@@ -22,7 +22,13 @@
   const hitsPerLevel = 10;
   let score = 0;
   let currentTargetWord = '';
-  const enemySpeedBase = 70;
+  const enemySpeedBase = 70; // This is no longer used for Y-movement
+
+  // --- New variables for stepped enemy movement ---
+  let enemyMoveTimer = 0; // Timer to track when to move
+  const enemyMoveInterval = 1.0; // Time in seconds between steps (slower)
+  const enemyMoveStepSize = 25; // How many pixels to move down each step (stepped)
+  const enemyStartY = -60; // The single Y-coordinate where all enemies spawn (horizontal line)
 
   let gameOver = false;
   let gameOverReason = '';
@@ -102,24 +108,30 @@
       [words[i], words[j]] = [words[j], words[i]];
     }
 
-    const margin = 70;
-    const count = words.length;
-    const spacing = count > 1 ? (width - margin * 2) / (count - 1) : 0;
+    // Reset the step timer so enemies wait before the first step
+  enemyMoveTimer = enemyMoveInterval;
 
-    for (let i = 0; i < count; i++) {
-      const x = margin + spacing * i + (Math.random() * 40 - 20);
-      const y = -Math.random() * 160 - 60;
-      enemies.push({
-        x: Math.max(60, Math.min(width - 60, x)),
-        y,
-        width: 90,
-        height: 40,
-        word: words[i],
-        speed: enemySpeedBase + (level - 1) * 25,
-        shootTimer: 0.8 + Math.random() * 1.5
-      });
-    }
+  const margin = 70;
+  const count = words.length;
+  // Calculate spacing for a nice, even formation
+  const spacing = count > 1 ? (width - margin * 2) / (count - 1) : 0;
+
+  for (let i = 0; i < count; i++) {
+    // Calculate a precise, non-random x position
+    const x = margin + spacing * i;
+    enemies.push({
+      // Clamp the x position to stay on screen
+      x: Math.max(60, Math.min(width - 60, x)),
+      // All enemies share the same starting Y (Goal 1)
+      y: enemyStartY,
+      width: 90,
+      height: 40,
+      word: words[i],
+      // 'speed' is no longer needed, movement is handled by the global timer
+      shootTimer: 0.8 + Math.random() * 1.5
+    });
   }
+}
 
   function shoot() {
     if (gameOver) return;
@@ -187,10 +199,23 @@
     }
     bullets = bullets.filter(b => b.y + b.height / 2 > 0);
 
+// --- Enemy formation movement (Goal 2 & 3) ---
+    enemyMoveTimer -= dt; // Count down the timer
+    let formationMoved = false;
+
+    if (enemyMoveTimer <= 0) {
+      enemyMoveTimer = enemyMoveInterval; // Reset timer
+      formationMoved = true; // Set flag to move enemies this frame
+    }
+
     // enemies
     for (const e of enemies) {
-      e.y += e.speed * dt;
+      // Only move the enemy's Y position if the timer has triggered
+      if (formationMoved) {
+        e.y += enemyMoveStepSize;
+      }
 
+      // The smooth horizontal wave movement (if active) still runs every frame
       if (level >= 4) {
         const wave = Math.sin((e.y + e.word.length * 13) / 50);
         e.x += wave * 35 * dt;
@@ -427,3 +452,6 @@
   restartGame();
   requestAnimationFrame(loop);
 })();
+
+
+

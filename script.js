@@ -410,7 +410,7 @@ let bullets = [];
       // All enemies share the same starting Y (Goal 1)
       y: enemyStartY,
       width: 90,
-      height: 40,
+      height: 50, // Increased height for more text room
       word: words[i],
       // 'speed' is no longer needed, movement is handled by the global timer
       shootTimer: 0.8 + Math.random() * 1.5
@@ -707,7 +707,7 @@ let bullets = [];
       ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
       ctx.fillStyle = "#ffffff";
       // Use the 8-bit font
-      ctx.font = "10px 'Press Start 2P'";
+      ctx.font = "14px 'Press Start 2P'"; // Increased font size
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(e.word, e.x, e.y + 1); // +1 for better pixel alignment

@@ -6,6 +6,7 @@
   let audioContext;
   let soundBank = {};
   let isAudioReady = false;
+  let isBatchAudioLoading = false; // NEW: Tracks if TTS audio is loading
 
   // Force pixelated rendering
   ctx.imageSmoothingEnabled = false;
@@ -259,6 +260,91 @@ let bullets = [];
     }
   }
 
+  /**
+   * Creates a function that plays a given AudioBuffer.
+   * This fits the soundBank pattern for our loaded TTS sounds.
+   * @param {AudioBuffer} buffer - The decoded audio buffer.
+   * @returns {Function} A function that plays the sound.
+   */
+  function createBufferPlayer(buffer) {
+    return () => {
+      if (!isAudioReady) return;
+      try {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(0);
+      } catch (e) {
+        console.error("Error playing buffer:", e);
+      }
+    };
+  }
+
+  /**
+   * Fetches TTS audio for words, decodes them, and stores them in the soundBank.
+   * @param {string[]} words - An array of words to fetch.
+   */
+  async function loadWordAudio(words) {
+    // Don't run if AudioContext isn't ready or there are no words
+    if (!isAudioReady || !words || words.length === 0) {
+      return;
+    }
+  
+    isBatchAudioLoading = true;
+    drawLoadingScreen(); // Draw a loading message immediately
+  
+    try {
+      // 1. Call our new API route
+      const response = await fetch('/api/generate-audio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ words })
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Audio API failed with status ${response.status}`);
+      }
+  
+      const audioMap = await response.json();
+      
+      // This array will hold all the decoding promises
+      const decodePromises = [];
+  
+      for (const [word, base64Audio] of Object.entries(audioMap)) {
+        // 2. Decode Base64 string back into binary data
+        const byteCharacters = atob(base64Audio);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        
+        // 3. Decode the binary audio data into a Web Audio Buffer
+        // This is an async operation, so we add its promise to the array.
+        decodePromises.push(
+          audioContext.decodeAudioData(byteArray.buffer)
+            .then(decodedBuffer => {
+              // 4. When decoded, create and store the player function
+              soundBank[word] = createBufferPlayer(decodedBuffer);
+            })
+            .catch(err => {
+              console.error(`Failed to decode audio for "${word}":`, err);
+            })
+        );
+      }
+      
+      // 5. Wait for ALL audio files to be decoded before proceeding
+      await Promise.all(decodePromises);
+  
+    } catch (error) {
+      console.error('Failed to load word audio:', error);
+      // Don't block the game, just proceed without word audio
+    } finally {
+      // 6. Signal that loading is complete
+      isBatchAudioLoading = false;
+    }
+  }
+
   function clampPlayerX() {
     const half = player.width / 2;
     if (player.x < half) player.x = half;
@@ -275,27 +361,39 @@ let bullets = [];
     return chosen;
   }
 
-  function startLevel() {
+  async function startLevel() {
     hitsThisLevel = 0;
     levelWords = pickRandomWords(6);
     if (levelWords.length < 6) {
       levelWords = pickRandomWords(6);
     }
-    spawnBatch();
+    // spawnBatch is now async, so we must await it
+    await spawnBatch();
   }
 
-  function spawnBatch() {
-    bullets = [];
-    enemyBullets = [];
-    enemies = [];
+  async function spawnBatch() {
+    bullets = [];
+    enemyBullets = [];
+    enemies = [];
 
-    if (!levelWords || levelWords.length !== 6) {
-      levelWords = pickRandomWords(6);
-    }
+    if (!levelWords || levelWords.length !== 6) {
+      levelWords = pickRandomWords(6);
+    }
 
-    currentTargetWord = levelWords[Math.floor(Math.random() * levelWords.length)];
+    // --- NEW: Load audio before spawning enemies ---
+    // This function will set isBatchAudioLoading = true,
+    // draw a loading screen, and wait for audio to be
+    // fetched and decoded.
+    await loadWordAudio(levelWords);
+    // Audio is now loaded (or failed)
 
-    const words = levelWords.slice();
+    currentTargetWord = levelWords[Math.floor(Math.random() * levelWords.length)];
+
+    // --- NEW: Play the target word sound ---
+    // We play it here so the player hears it as the wave appears.
+    playSound(currentTargetWord);
+
+    const words = levelWords.slice();
     for (let i = words.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [words[i], words[j]] = [words[j], words[i]];
@@ -391,7 +489,7 @@ let bullets = [];
     }
   }
 
-  function restartGame() {
+  async function restartGame() {
     level = 1;
     score = 0;
     hitsThisLevel = 0;
@@ -402,7 +500,8 @@ let bullets = [];
     enemyBullets = [];
     player.x = width / 2;
     clampPlayerX();
-    startLevel();
+    // startLevel is now async, so we must await it
+    await startLevel();
     playSound('startGame');
   }
 
@@ -421,14 +520,19 @@ let bullets = [];
     // --- Check for pending spawn ---
     // If we are waiting to spawn, and all explosions are finished, spawn now.
     if (pendingSpawn && explosions.length === 0) {
-      pendingSpawn = false;
-      if (hitsThisLevel >= hitsPerLevel) {
-        level++;
-        playSound('levelUp');
-        startLevel();
-      } else {
-        spawnBatch();
-      }
+      pendingSpawn = false; // Set to false immediately to prevent re-triggering
+      
+      // Use an async IIFE (Immediately Invoked Function Expression)
+      // to handle the async spawn logic without making update() async.
+      (async () => {
+        if (hitsThisLevel >= hitsPerLevel) {
+          level++;
+          playSound('levelUp');
+          await startLevel(); // await the async function
+        } else {
+          await spawnBatch(); // await the async function
+        }
+      })();
     }
 
     // --- Player movement based on button state ---
@@ -577,9 +681,28 @@ let bullets = [];
       const y = (i * 137) % height;
       ctx.fillRect(x, y, 2, 2); // Blocky 2x2 stars
     }
+}
+
+  function drawLoadingScreen() {
+    // Draw a black background
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw loading text
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "10px 'Press Start 2P'"; // Use the 8-bit font
+    ctx.fillText("Loading Audio...", width / 2, height / 2);
   }
 
   function draw() {
+    // --- NEW: Show loading screen if audio is fetching ---
+    if (isBatchAudioLoading) {
+      drawLoadingScreen();
+      return; // Stop drawing the rest of the game
+    }
+
     // We MUST disable image smoothing every frame, as some
     // operations (like resize) can reset it.
     ctx.imageSmoothingEnabled = false;
@@ -737,10 +860,11 @@ let bullets = [];
     rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
 
     // --- Shoot/Restart Listener ---
-    const onShootPress = (e) => {
+    const onShootPress = async (e) => { // Make the handler async
       e.preventDefault();
       if (gameOver) {
-        restartGame();
+        // Await the async restart function
+        await restartGame();
       } else {
         shoot();
       }
@@ -784,7 +908,7 @@ let bullets = [];
 
 
   // --- Start Button Listener ---
-  playBtn.addEventListener('click', () => {
+  playBtn.addEventListener('click', async () => { // Make the handler async
     // 0. Initialize the Audio Context (MUST be first)
     initAudio();
 
@@ -805,8 +929,9 @@ let bullets = [];
     // 5. A small delayed resize helps once browser toolbars finish animating.
     setTimeout(resize, 350);
 
-    // 6. Start the game logic
-    restartGame();
+    // 6. Start the game logic (and await it, so the loop doesn't start
+    //    while the first batch of audio is loading)
+    await restartGame();
     
     // 7. Start the main game loop
     lastTime = performance.now(); // Initialize lastTime right before starting

@@ -21,62 +21,54 @@ export default async function handler(req, res) {
   const VOICE_ID = 'O4fnkotIypvedJqBp4yb';
   const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
   const MODEL_ID = 'eleven_v3';
-  
-  // --- NEW: Batching variables ---
-  const BATCH_SIZE = 8; // Process 8 requests at a time
   const audioMap = {}; // Collect all results here
 
   try {
-    // 4. Loop through the words in batches
-    for (let i = 0; i < words.length; i += BATCH_SIZE) {
-      const batchWords = words.slice(i, i + BATCH_SIZE);
-      console.log(`Processing batch ${i / BATCH_SIZE + 1}... Words: ${batchWords.join(', ')}`);
-
-      // 5. Create fetch promises just for this batch
-      const fetchPromises = batchWords.map(async (word) => {
-        const response = await fetch(ELEVENLABS_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'xi-api-key': apiKey,
-            'Accept': 'audio/mpeg'
-          },
-          body: JSON.stringify({
-            text: word,
-            model_id: MODEL_ID,
-            voice_settings: {
-              stability: 1
-            },
-          }),
-        });
-
-        if (!response.ok) {
-          // Log the error but don't stop the whole process
-          console.error(`Failed to fetch audio for "${word}": ${response.statusText}`);
-          return null;
-        }
-
-        const audioBuffer = await response.arrayBuffer();
-        const base64Audio = Buffer.from(audioBuffer).toString('base64');
-        return { word, base64Audio };
+    // 4. Loop through each word *sequentially* (one by one)
+    for (const word of words) {
+      console.log(`Processing word: ${word}...`);
+      
+      const response = await fetch(ELEVENLABS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+          'Accept': 'audio/mpeg'
+        },
+        body: JSON.stringify({
+          text: word,
+          model_id: MODEL_ID,
+          voice_settings: {
+            stability: 1
+           },
+        }),
       });
 
-      // 6. Wait for the *current batch* to complete
-      const results = await Promise.all(fetchPromises);
-
-      // 7. Assemble the results for this batch into the main map
-      for (const result of results) {
-        if (result) {
-          audioMap[result.word] = result.base64Audio;
+      if (!response.ok) {
+        // Log the error and skip this word
+        console.error(`Failed to fetch audio for "${word}": ${response.statusText}`);
+        // If we *still* get a rate limit, the only thing to do is wait
+        if (response.status === 429) {
+          console.warn('Rate limit hit. Pausing for 1 second...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
+        continue; // Go to the next word
       }
-      // The loop will now continue to the next batch
+
+      const audioBuffer = await response.arrayBuffer();
+      const base64Audio = Buffer.from(audioBuffer).toString('base64');
+       audioMap[word] = base64Audio;
+      
+      // 5. Add a small, mandatory pause between each request
+      // This is the safest way to respect the rate limit.
+      await new Promise(resolve => setTimeout(resolve, 200)); // 200ms pause
     }
 
-    // 8. After all batches are done, send the complete map
+    // 6. After all words are processed, send the complete map
+    console.log('All audio processing complete.');
     res.status(200).json(audioMap);
 
-  } catch (error) {
+ } catch (error) {
     console.error('Error fetching from ElevenLabs:', error);
     res.status(500).json({ error: 'Failed to generate audio' });
   }

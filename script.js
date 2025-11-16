@@ -361,33 +361,27 @@ let bullets = [];
     return chosen;
   }
 
-  async function startLevel() {
+  function startLevel() { // No longer async
     hitsThisLevel = 0;
     levelWords = pickRandomWords(6);
     if (levelWords.length < 6) {
       levelWords = pickRandomWords(6);
     }
-    // spawnBatch is now async, so we must await it
-    await spawnBatch();
+    // spawnBatch is no longer async
+    spawnBatch(); // No longer awaited
   }
 
-  async function spawnBatch() {
-    bullets = [];
-    enemyBullets = [];
-    enemies = [];
+  function spawnBatch() { // No longer async
+    bullets = [];
+    enemyBullets = [];
+    enemies = [];
 
-    if (!levelWords || levelWords.length !== 6) {
-      levelWords = pickRandomWords(6);
-    }
+    if (!levelWords || levelWords.length !== 6) {
+      levelWords = pickRandomWords(6);
+    }
 
-    // --- NEW: Load audio before spawning enemies ---
-    // This function will set isBatchAudioLoading = true,
-    // draw a loading screen, and wait for audio to be
-    // fetched and decoded.
-    await loadWordAudio(levelWords);
-    // Audio is now loaded (or failed)
-
-    currentTargetWord = levelWords[Math.floor(Math.random() * levelWords.length)];
+    // --- Audio is pre-loaded, so we just pick a word ---
+    currentTargetWord = levelWords[Math.floor(Math.random() * levelWords.length)];
 
     // --- NEW: Play the target word sound ---
     // We play it here so the player hears it as the wave appears.
@@ -489,7 +483,7 @@ let bullets = [];
     }
   }
 
-  async function restartGame() {
+  function restartGame() { // No longer async
     level = 1;
     score = 0;
     hitsThisLevel = 0;
@@ -500,8 +494,8 @@ let bullets = [];
     enemyBullets = [];
     player.x = width / 2;
     clampPlayerX();
-    // startLevel is now async, so we must await it
-    await startLevel();
+    // startLevel is no longer async
+    startLevel(); // No longer awaited
     playSound('startGame');
   }
 
@@ -522,17 +516,14 @@ let bullets = [];
     if (pendingSpawn && explosions.length === 0) {
       pendingSpawn = false; // Set to false immediately to prevent re-triggering
       
-      // Use an async IIFE (Immediately Invoked Function Expression)
-      // to handle the async spawn logic without making update() async.
-      (async () => {
-        if (hitsThisLevel >= hitsPerLevel) {
-          level++;
-          playSound('levelUp');
-          await startLevel(); // await the async function
-        } else {
-          await spawnBatch(); // await the async function
-        }
-      })();
+      // Functions are no longer async, so we can call them directly.
+      if (hitsThisLevel >= hitsPerLevel) {
+        level++;
+        playSound('levelUp');
+        startLevel(); // No longer awaited
+      } else {
+        spawnBatch(); // No longer awaited
+      }
     }
 
     // --- Player movement based on button state ---
@@ -860,11 +851,11 @@ let bullets = [];
     rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
 
     // --- Shoot/Restart Listener ---
-    const onShootPress = async (e) => { // Make the handler async
+    const onShootPress = (e) => { // No longer async
       e.preventDefault();
       if (gameOver) {
-        // Await the async restart function
-        await restartGame();
+        // restartGame is no longer async
+        restartGame(); // No longer awaited
       } else {
         shoot();
       }
@@ -911,6 +902,12 @@ let bullets = [];
   playBtn.addEventListener('click', async () => { // Make the handler async
     // 0. Initialize the Audio Context (MUST be first)
     initAudio();
+    
+    // --- NEW: Load ALL audio for the entire game ---
+    // We must do this *after* initAudio() but *before* starting the game.
+    // loadWordAudio will set 'isBatchAudioLoading' and draw a loading screen.
+    await loadWordAudio(sightWords);
+    // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 
     // 1. Hide start screen
     startScreen.style.display = 'none';
@@ -929,9 +926,8 @@ let bullets = [];
     // 5. A small delayed resize helps once browser toolbars finish animating.
     setTimeout(resize, 350);
 
-    // 6. Start the game logic (and await it, so the loop doesn't start
-    //    while the first batch of audio is loading)
-    await restartGame();
+    // 6. Start the game logic. This is no longer async.
+    restartGame(); // No longer awaited
     
     // 7. Start the main game loop
     lastTime = performance.now(); // Initialize lastTime right before starting

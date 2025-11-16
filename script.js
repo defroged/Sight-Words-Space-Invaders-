@@ -67,8 +67,7 @@ let bullets = [];
 
   const sightWords = [
     "the","and","to","of","a","in","is","you","that","it",
-    "but","not","what","all","were","we","when","your","can","said",
-    "there","use","an","each","which","she","do","how","their","if"
+    "there","use","an","their","if"
   ];
 
   function resize() {

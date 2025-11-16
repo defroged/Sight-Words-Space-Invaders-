@@ -66,8 +66,7 @@ let bullets = [];
   const shootBtn = document.getElementById('shoot-btn');
 
   const sightWords = [
-    "the","and","to","of","a","in","is","you","that","it",
-    "there","use","an","their","if"
+    "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
   ];
 
   function resize() {

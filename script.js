@@ -38,7 +38,7 @@
   const enemyMoveStepY = 25; // How many pixels to move down on wall hit
   const enemyMoveStepX = 15; // How many pixels to move sideways
   let enemyDirection = 1; // 1 for right, -1 for left
-  const enemyStartY = 50;
+  const enemyStartY = 30;
 
   let gameOver = false;
   let gameOverReason = '';

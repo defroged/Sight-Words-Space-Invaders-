@@ -2,6 +2,11 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
 
+  // --- Get elements for start screen and controls ---
+  const controls = document.querySelector('.controls');
+  const startScreen = document.getElementById('start-screen');
+  const playBtn = document.getElementById('play-btn');
+
   let width = window.innerWidth;
   let height = window.innerHeight;
 
@@ -432,6 +437,46 @@
   // Set up the new controls
   setupControls();
 
+  // --- Fullscreen API Handler ---
+  function enterFullScreen() {
+    const element = document.documentElement; // Request fullscreen for the whole page
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element.webkitRequestFullscreen) { // Safari
+      element.webkitRequestFullscreen();
+    } else if (element.mozRequestFullScreen) { // Firefox
+      element.mozRequestFullScreen();
+    } else if (element.msRequestFullscreen) { // IE/Edge
+      element.msRequestFullscreen();
+    }
+  }
+
+  // --- Start Button Listener ---
+  playBtn.addEventListener('click', () => {
+    // 1. Hide start screen
+    startScreen.style.display = 'none';
+
+    // 2. Show game elements
+    canvas.style.display = 'block';
+    controls.style.display = 'flex'; // Use 'flex' as defined in CSS
+
+    // 3. Request full screen (required by user interaction)
+    enterFullScreen();
+
+    // 4. Call resize to set canvas to new full-screen size
+    //    This is crucial!
+    resize();
+
+    // 5. Start the game logic
+    restartGame();
+    
+    // 6. Start the main game loop
+    // We call this here so the loop doesn't run in the background
+    // before the player hits "Play".
+    lastTime = performance.now(); // Initialize lastTime right before starting
+    requestAnimationFrame(loop);
+  });
+
   // Main loop
   let lastTime = 0;
   function loop(timestamp) {
@@ -449,9 +494,7 @@
     requestAnimationFrame(loop);
   }
 
-  restartGame();
-  requestAnimationFrame(loop);
+  // We no longer start the game here, we wait for the play button.
 })();
-
 
 

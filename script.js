@@ -43,7 +43,8 @@ let bullets = [];
 
   // --- New variables for stepped enemy movement ---
   let enemyMoveTimer = 0; // Timer to track when to move
-  const enemyMoveInterval = 1.0; // Time in seconds between steps (slower)
+  const baseEnemyMoveInterval = 1.0; // Base time in seconds between steps
+  let currentEnemyMoveInterval = baseEnemyMoveInterval; // Current time, scales with level
   const enemyMoveStepY = 25; // How many pixels to move down on wall hit
   const enemyMoveStepX = 15; // How many pixels to move sideways
   let enemyDirection = 1; // 1 for right, -1 for left
@@ -359,8 +360,11 @@ let bullets = [];
   }
 
   function startLevel() { // No longer async
-    hitsThisLevel = 0;
-    levelWords = pickRandomWords(6);
+    // NEW: Adjust enemy speed based on level. 3% faster per level.
+    currentEnemyMoveInterval = baseEnemyMoveInterval * Math.pow(0.97, level - 1);
+    
+    hitsThisLevel = 0;
+    levelWords = pickRandomWords(6);
     if (levelWords.length < 6) {
       levelWords = pickRandomWords(6);
     }
@@ -391,7 +395,7 @@ let bullets = [];
     }
 
     // Reset the step timer so enemies wait before the first step
-    enemyMoveTimer = enemyMoveInterval;
+    enemyMoveTimer = currentEnemyMoveInterval;
     // Reset enemy direction to move right first
     enemyDirection = 1;
 
@@ -412,9 +416,27 @@ let bullets = [];
       height: 50, // Increased height for more text room
       word: words[i],
       // 'speed' is no longer needed, movement is handled by the global timer
-      shootTimer: 0.8 + Math.random() * 1.5
-    });
-  }
+      shootTimer: 0.8 + Math.random() * 1.5,
+      isShooter: false // NEW: Flag to designate if this enemy can shoot
+    });
+  }
+
+    // --- NEW: Designate shooters based on level ---
+    let numShooters = 0;
+    if (level >= 3) {
+      // 1 shooter at level 3, +1 every 3 levels (level 6, 9, etc.)
+      numShooters = 1 + Math.floor((level - 3) / 3);
+    }
+    numShooters = Math.min(numShooters, enemies.length); // Cap at total enemy count
+
+    // Randomly assign shooters
+    let availableEnemies = enemies.map((_, i) => i); // Array of indices [0, 1, ..., 5]
+    while (numShooters > 0 && availableEnemies.length > 0) {
+      const randIndex = Math.floor(Math.random() * availableEnemies.length);
+      const enemyIndex = availableEnemies.splice(randIndex, 1)[0];
+      enemies[enemyIndex].isShooter = true;
+      numShooters--;
+    }
 }
 
   function shoot() {
@@ -544,8 +566,8 @@ let bullets = [];
     let formationMovedSide = false;
 
     if (enemyMoveTimer <= 0) {
-      enemyMoveTimer = enemyMoveInterval; // Reset timer
-      formationMovedSide = true; // Flag that we are trying to move sideways
+      enemyMoveTimer = currentEnemyMoveInterval; // Reset timer
+      formationMovedSide = true; // Flag that we are trying to move sideways
 
       // Check for wall hits *before* moving
       let hitWall = false;
@@ -581,10 +603,10 @@ let bullets = [];
       if (level >= 4) { ... }
       */
 
-      // Enemy shooting logic (remains the same)
-      if (level >= 3) {
-        e.shootTimer -= dt;
-        if (e.shootTimer <= 0) {
+      // Enemy shooting logic (NEW: only designated shooters shoot)
+      if (e.isShooter) {
+        e.shootTimer -= dt;
+        if (e.shootTimer <= 0) {
           e.shootTimer = 0.8 + Math.random() * 1.5;
           enemyBullets.push({
             x: e.x,

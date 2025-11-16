@@ -69,7 +69,16 @@
   }
 
   window.addEventListener('resize', resize);
-  resize();
+
+  // --- New Fullscreen Change Listeners ---
+  // These events fire *after* the browser has entered or exited
+  // fullscreen, ensuring window.innerHeight is correct.
+  document.addEventListener('fullscreenchange', resize);
+  document.addEventListener('webkitfullscreenchange', resize);
+  document.addEventListener('mozfullscreenchange', resize);
+  document.addEventListener('msfullscreenchange', resize);
+
+  resize(); // Initial call to set size before game starts
 
   function clampPlayerX() {
     const half = player.width / 2;
@@ -463,9 +472,9 @@
     // 3. Request full screen (required by user interaction)
     enterFullScreen();
 
-    // 4. Call resize to set canvas to new full-screen size
-    //    This is crucial!
-    resize();
+    // 4. The 'fullscreenchange' event listener will now handle
+    //    calling resize() automatically when fullscreen activates.
+    //    We no longer call resize() here.
 
     // 5. Start the game logic
     restartGame();

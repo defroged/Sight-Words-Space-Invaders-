@@ -321,7 +321,7 @@
                 startLevel();
               } else {
                 spawnBatch();
-            _ }
+             }
             } else {
               setGameOver("Wrong word!");
             }

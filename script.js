@@ -51,9 +51,14 @@ let bullets = [];
   const enemyStartY = 30;
 
   let gameOver = false;
-  let gameOverReason = '';
+  let gameOverReason = '';
 
-  let lastShotTime = 0;
+  // --- NEW: Level Up State ---
+  let isLevelingUp = false;
+  let levelUpTimer = 0;
+  const levelUpDuration = 3.0; // 3 seconds
+
+  let lastShotTime = 0;
   const shotCooldown = 200; // ms
 
   // --- New state variables for button controls ---
@@ -519,9 +524,22 @@ let bullets = [];
   }
 
   function update(dt) {
-    if (gameOver) return;
+    if (gameOver) return;
 
-    // --- Update explosions ---
+    // --- NEW: Handle Level Up state ---
+    // If we are leveling up, pause all game logic
+    if (isLevelingUp) {
+      levelUpTimer -= dt;
+      if (levelUpTimer <= 0) {
+        isLevelingUp = false;
+        startLevel(); // Start the next level now
+      }
+      // We return here to pause all other game logic (explosions, spawns, movement)
+      // We still draw, so the animation is visible.
+      return; 
+    }
+
+    // --- Update explosions ---
     for (let i = explosions.length - 1; i >= 0; i--) {
       const expl = explosions[i];
       expl.timer -= dt;
@@ -531,19 +549,24 @@ let bullets = [];
     }
 
     // --- Check for pending spawn ---
-    // If we are waiting to spawn, and all explosions are finished, spawn now.
-    if (pendingSpawn && explosions.length === 0) {
-      pendingSpawn = false; // Set to false immediately to prevent re-triggering
-      
-      // Functions are no longer async, so we can call them directly.
-      if (hitsThisLevel >= hitsPerLevel) {
-        level++;
-        playSound('levelUp');
-        startLevel(); // No longer awaited
-      } else {
-        spawnBatch(); // No longer awaited
-      }
-    }
+    // If we are waiting to spawn, and all explosions are finished, spawn now.
+    if (pendingSpawn && explosions.length === 0) {
+      pendingSpawn = false; // Set to false immediately to prevent re-triggering
+      
+      // Functions are no longer async, so we can call them directly.
+      if (hitsThisLevel >= hitsPerLevel) {
+        // --- LEVEL UP ---
+        level++;
+        playSound('levelUp');
+        isLevelingUp = true; // Set the new state
+        levelUpTimer = levelUpDuration; // Set the timer
+        // We DO NOT call startLevel() here anymore.
+        // The update() function will call it when the timer finishes.
+      } else {
+        // Just spawn the next wave
+        spawnBatch(); // No longer awaited
+      }
+    }
 
     // --- Player movement based on button state ---
     if (moveLeft) {
@@ -597,11 +620,6 @@ let bullets = [];
         e.x += (enemyMoveStepX * enemyDirection);
       }
 
-      // REMOVED: The smooth horizontal wave movement.
-      // The new blocky movement replaces it.
-      /*
-      if (level >= 4) { ... }
-      */
 
       // Enemy shooting logic (NEW: only designated shooters shoot)
       if (e.isShooter) {
@@ -788,7 +806,47 @@ let bullets = [];
 
     // Target word text removed (now audio-only)
 
-    if (gameOver) {
+    // --- NEW: Level Up Animation ---
+    if (isLevelingUp) {
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // Timer goes from 3.0 down to 0.0
+      // We calculate 'timeElapsed' from 0.0 to 3.0
+      const timeElapsed = levelUpDuration - levelUpTimer;
+      let scale = 1.0;
+      let alpha = 1.0;
+      const fadeInTime = 0.4;
+      const fadeOutTime = 0.6;
+
+      // First 0.4 seconds: Zoom in and fade in
+      if (timeElapsed < fadeInTime) {
+        scale = (timeElapsed / fadeInTime) * 1.5; // Zooms from 0 to 1.5x
+        alpha = timeElapsed / fadeInTime; // Fades from 0 to 1
+      } 
+      // Last 0.6 seconds: Fade out
+      else if (timeElapsed > (levelUpDuration - fadeOutTime)) {
+        alpha = (levelUpDuration - timeElapsed) / fadeOutTime; // Fades from 1 to 0
+        scale = 1.5; // Hold scale
+      }
+      // Middle section: Hold
+      else {
+        scale = 1.5;
+        alpha = 1.0;
+      }
+
+      // Clamp values to be safe
+      scale = Math.max(0.1, Math.min(1.5, scale));
+      alpha = Math.max(0, Math.min(1, alpha));
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.font = `${20 * scale}px 'Press Start 2P'`; // Base size 20px
+      ctx.fillText(`Level ${level}`, width / 2, height / 2 - 60);
+    }
+    // --- END Level Up Animation ---
+
+    if (gameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, width, height);
 

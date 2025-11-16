@@ -163,15 +163,17 @@
         const now = audioContext.currentTime;
         const osc = audioContext.createOscillator();
         const gain = audioContext.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.linearRampToValueAtTime(1200, now + 0.1);
+        osc.type = 'sawtooth'; // A much harsher, 8-bit-like wave
+        osc.frequency.setValueAtTime(400, now); // Start at a medium-low pitch
+        // Rapidly drop the pitch to create an explosion/poof effect
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.1); 
         gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        // Use exponentialRamp for a more natural-sounding quick decay
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); 
         osc.connect(gain);
         gain.connect(audioContext.destination);
         osc.start(now);
-        osc.stop(now + 0.1);
+        osc.stop(now + 0.12); // Let it ring out just a tiny bit longer
       };
 
       soundBank['hitWrong'] = () => {

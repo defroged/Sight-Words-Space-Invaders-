@@ -2,6 +2,9 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
 
+  // Force pixelated rendering
+  ctx.imageSmoothingEnabled = false;
+
   // --- Get elements for start screen and controls ---
   const controls = document.querySelector('.controls');
   const startScreen = document.getElementById('start-screen');
@@ -32,7 +35,9 @@
   // --- New variables for stepped enemy movement ---
   let enemyMoveTimer = 0; // Timer to track when to move
   const enemyMoveInterval = 1.0; // Time in seconds between steps (slower)
-  const enemyMoveStepSize = 25; // How many pixels to move down each step (stepped)
+  const enemyMoveStepY = 25; // How many pixels to move down on wall hit
+  const enemyMoveStepX = 15; // How many pixels to move sideways
+  let enemyDirection = 1; // 1 for right, -1 for left
   const enemyStartY = -60; // The single Y-coordinate where all enemies spawn (horizontal line)
 
   let gameOver = false;
@@ -137,7 +142,9 @@
     }
 
     // Reset the step timer so enemies wait before the first step
-  enemyMoveTimer = enemyMoveInterval;
+    enemyMoveTimer = enemyMoveInterval;
+    // Reset enemy direction to move right first
+    enemyDirection = 1;
 
   const margin = 70;
   const count = words.length;
@@ -227,31 +234,50 @@
     }
     bullets = bullets.filter(b => b.y + b.height / 2 > 0);
 
-// --- Enemy formation movement (Goal 2 & 3) ---
+    // --- Enemy formation movement (Space Invaders style) ---
     enemyMoveTimer -= dt; // Count down the timer
-    let formationMoved = false;
+    let formationMovedDown = false;
+    let formationMovedSide = false;
 
     if (enemyMoveTimer <= 0) {
       enemyMoveTimer = enemyMoveInterval; // Reset timer
-      formationMoved = true; // Set flag to move enemies this frame
+      formationMovedSide = true; // Flag that we are trying to move sideways
+
+      // Check for wall hits *before* moving
+      let hitWall = false;
+      for (const e of enemies) {
+        const nextX = e.x + (enemyMoveStepX * enemyDirection);
+        const halfW = e.width / 2;
+        if (nextX > width - halfW - 10 || nextX < halfW + 10) {
+          hitWall = true;
+          break;
+        }
+      }
+
+      if (hitWall) {
+        formationMovedDown = true; // Move down instead of sideways
+        formationMovedSide = false;
+        enemyDirection *= -1; // Change direction
+      }
     }
 
     // enemies
     for (const e of enemies) {
-      // Only move the enemy's Y position if the timer has triggered
-      if (formationMoved) {
-        e.y += enemyMoveStepSize;
+      // Apply movement based on flags
+      if (formationMovedDown) {
+        e.y += enemyMoveStepY;
+      }
+      if (formationMovedSide) {
+        e.x += (enemyMoveStepX * enemyDirection);
       }
 
-      // The smooth horizontal wave movement (if active) still runs every frame
-      if (level >= 4) {
-        const wave = Math.sin((e.y + e.word.length * 13) / 50);
-        e.x += wave * 35 * dt;
-        const halfW = e.width / 2;
-        if (e.x < halfW + 10) e.x = halfW + 10;
-        if (e.x > width - halfW - 10) e.x = width - halfW - 10;
-      }
+      // REMOVED: The smooth horizontal wave movement.
+      // The new blocky movement replaces it.
+      /*
+      if (level >= 4) { ... }
+      */
 
+      // Enemy shooting logic (remains the same)
       if (level >= 3) {
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
@@ -266,6 +292,7 @@
         }
       }
 
+      // Game over check (remains the same)
       if (e.y - e.height / 2 > height) {
         setGameOver("An enemy slipped through!");
       }
@@ -294,7 +321,7 @@
                 startLevel();
               } else {
                 spawnBatch();
-              }
+            _ }
             } else {
               setGameOver("Wrong word!");
             }
@@ -319,28 +346,36 @@
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    ctx.fillStyle = "#111";
+    // Static starfield (no more smooth animation)
+    ctx.fillStyle = "#333"; // A bit brighter
     for (let i = 0; i < 40; i++) {
-      const x = (i * 53) % width;
-      const y = (i * 137 + (Date.now() * 0.05)) % height;
-      ctx.fillRect(x, y, 2, 2);
+      const x = (i * 53 * 3) % width; // Change positions
+      const y = (i * 137) % height;
+      ctx.fillRect(x, y, 2, 2); // Blocky 2x2 stars
     }
   }
 
   function draw() {
+    // We MUST disable image smoothing every frame, as some
+    // operations (like resize) can reset it.
+    ctx.imageSmoothingEnabled = false;
     drawBackground();
 
-    // player ship
-    ctx.save();
-    ctx.translate(player.x, player.y);
-    ctx.fillStyle = "#00ffcc";
-    ctx.beginPath();
-    ctx.moveTo(-player.width / 2, player.height / 2);
-    ctx.lineTo(player.width / 2, player.height / 2);
-    ctx.lineTo(0, -player.height / 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+    // player ship (now a blocky rectangle)
+    ctx.fillStyle = "#00FF00"; // Classic arcade green
+    ctx.fillRect(
+      player.x - player.width / 2,
+      player.y - player.height / 2,
+      player.width,
+      player.height
+    );
+    // Add a "cannon"
+    ctx.fillRect(
+      player.x - 4,
+      player.y - player.height / 2 - 8,
+      8,
+      8
+    );
 
     // player bullets
     ctx.fillStyle = "#ffffff";
@@ -350,13 +385,14 @@
 
     // enemies
     for (const e of enemies) {
-      ctx.fillStyle = "#ff5555";
+      ctx.fillStyle = "#FF0000"; // Classic arcade red
       ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "16px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      // Use the 8-bit font
+      ctx.font = "10px 'Press Start 2P'";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(e.word, e.x, e.y);
+      ctx.fillText(e.word, e.x, e.y + 1); // +1 for better pixel alignment
     }
 
     // enemy bullets
@@ -369,22 +405,18 @@
     ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.font = "14px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.font = "10px 'Press Start 2P'";
     ctx.fillText("Level: " + level, 10, 8);
     ctx.fillText("Score: " + score, 10, 26);
     ctx.fillText("Streak: " + hitsThisLevel + " / " + hitsPerLevel, 10, 44);
 
     ctx.textBaseline = "bottom";
-    ctx.font = "16px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.font = "10px 'Press Start 2P'";
     // Adjust HUD to not overlap buttons
     ctx.fillText("Hit the word:", 10, height - 120);
-    ctx.font = "26px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.font = "16px 'Press Start 2P'";
+    ctx.fillStyle = "#00FF00"; // Make the target word green
     ctx.fillText(currentTargetWord, 10, height - 92);
-
-    // Removed the old controls text
-    // ctx.textAlign = "right";
-    // ctx.font = "12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    // ctx.fillText("Right half: move ship  |  Left half: shoot", width - 10, height - 18);
 
     if (gameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -394,13 +426,13 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      ctx.font = "30px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.font = "20px 'Press Start 2P'";
       ctx.fillText("Game Over", width / 2, height / 2 - 40);
 
-      ctx.font = "18px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.font = "10px 'Press Start 2P'";
       ctx.fillText(gameOverReason, width / 2, height / 2);
 
-      ctx.font = "16px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.font = "10px 'Press Start 2P'";
       // Updated restart text
       ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 40);
     }

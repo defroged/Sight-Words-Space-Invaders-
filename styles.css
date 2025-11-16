@@ -18,7 +18,8 @@
       touch-action: none;
       -webkit-user-select: none; /* Prevents text selection */
       user-select: none;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+      /* Use the new 8-bit font, with system-ui as a fallback */
+      font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     }
     
     canvas {
@@ -26,6 +27,11 @@
       width: 100%;
       height: var(--app-height);
       touch-action: none;
+      /* This is the magic for a crisp, pixelated look */
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
     /* --- New Control Button Styles --- */
@@ -53,9 +59,9 @@
       pointer-events: auto; /* Makes buttons clickable */
       width: 70px;
       height: 70px;
-      background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.4);
-      border-radius: 50%; /* Circular */
+      background: transparent; /* No background fill */
+      border: 2px solid #FFF; /* Solid white border */
+      border-radius: 0; /* No more circles! */
       color: white;
       font-size: 28px;
       font-weight: bold;
@@ -67,7 +73,8 @@
 
     /* Style for when a button is being pressed */
     .controls button:active {
-      background: rgba(255, 255, 255, 0.4);
+      background: #FFF; /* Fill in with white on press */
+      color: #000;
     }
 
     /* Container for the left/right buttons */
@@ -126,8 +133,8 @@
   z-index: 100;
   color: white;
   text-align: center;
-  /* Use the same font as the rest of the app */
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  /* Use the new 8-bit font */
+  font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 
@@ -138,20 +145,20 @@
 }
 
 #play-btn {
-  font-family: inherit; /* Inherit the font from #start-screen */
-  font-size: 2rem;
-  font-weight: bold;
+  font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1.5rem; /* Pixel fonts look better at specific sizes */
+  font-weight: normal;
   color: #000;
-  background: #00ffcc;
+  background: #00FF00; /* Classic arcade green */
   border: none;
   padding: 20px 40px;
-  border-radius: 10px;
+  border-radius: 0; /* No more rounded corners */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent; /* Removes blue flash on tap */
 }
 
 #play-btn:active {
-  background: #99ffee;
+  background: #99ff99;
 }
 
 

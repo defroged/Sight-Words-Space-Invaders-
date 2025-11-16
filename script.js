@@ -38,7 +38,8 @@
   const enemyMoveStepY = 25; // How many pixels to move down on wall hit
   const enemyMoveStepX = 15; // How many pixels to move sideways
   let enemyDirection = 1; // 1 for right, -1 for left
-  const enemyStartY = -60; // The single Y-coordinate where all enemies spawn (horizontal line)
+  // Spawn enemies just below the HUD (top edge at y=50)
+  const enemyStartY = 70;
 
   let gameOver = false;
   let gameOverReason = '';

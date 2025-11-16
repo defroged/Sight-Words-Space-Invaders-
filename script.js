@@ -14,6 +14,7 @@
   // --- Get elements for start screen and controls ---
   const controls = document.querySelector('.controls');
   const startScreen = document.getElementById('start-screen');
+  const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
 
   let width = window.innerWidth;
@@ -289,7 +290,7 @@ let bullets = [];
     }
   
     isBatchAudioLoading = true;
-    drawLoadingScreen(); // Draw a loading message immediately
+    // drawLoadingScreen(); // No longer needed, HTML loader is shown
   
     try {
       // 1. Call our new API route
@@ -672,27 +673,9 @@ let bullets = [];
     }
 }
 
-  function drawLoadingScreen() {
-    // Draw a black background
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, width, height);
-    
-    // Draw loading text
-    ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = "10px 'Press Start 2P'"; // Use the 8-bit font
-    ctx.fillText("Loading Audio...", width / 2, height / 2);
-  }
+  
 
   function draw() {
-    // --- NEW: Show loading screen if audio is fetching ---
-    if (isBatchAudioLoading) {
-      drawLoadingScreen();
-      return; // Stop drawing the rest of the game
-    }
-
-    // We MUST disable image smoothing every frame, as some
     // operations (like resize) can reset it.
     ctx.imageSmoothingEnabled = false;
     drawBackground();
@@ -898,36 +881,39 @@ let bullets = [];
 
   // --- Start Button Listener ---
   playBtn.addEventListener('click', async () => { // Make the handler async
-    // 0. Initialize the Audio Context (MUST be first)
+    // 0. Hide start screen, show loading screen
+    startScreen.style.display = 'none';
+    loadingScreen.style.display = 'flex'; // Show the new loader
+
+    // 1. Initialize the Audio Context (MUST be first)
     initAudio();
     
-    // --- NEW: Load ALL audio for the entire game ---
-    // We must do this *after* initAudio() but *before* starting the game.
-    // loadWordAudio will set 'isBatchAudioLoading' and draw a loading screen.
+    // 2. Load ALL audio for the entire game
+    // This is the part that takes time.
     await loadWordAudio(sightWords);
     // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 
-    // 1. Hide start screen
-    startScreen.style.display = 'none';
+    // 3. Hide loading screen
+    loadingScreen.style.display = 'none';
 
-    // 2. Show game elements
+    // 4. Show game elements
     canvas.style.display = 'block';
     controls.style.display = 'flex'; // Use 'flex' as defined in CSS
 
-    // 3. Make sure our CSS var and canvas size match the current viewport
+    // 5. Make sure our CSS var and canvas size match the current viewport
     resize();
 
-    // 4. Try real fullscreen where supported; otherwise fall back
+    // 6. Try real fullscreen where supported; otherwise fall back
     //    to the pseudo-fullscreen behavior (mobile iOS/Firefox).
     enterFullScreen();
 
-    // 5. A small delayed resize helps once browser toolbars finish animating.
+    // 7. A small delayed resize helps once browser toolbars finish animating.
     setTimeout(resize, 350);
 
-    // 6. Start the game logic. This is no longer async.
+    // 8. Start the game logic. This is no longer async.
     restartGame(); // No longer awaited
     
-    // 7. Start the main game loop
+    // 9. Start the main game loop
     lastTime = performance.now(); // Initialize lastTime right before starting
     requestAnimationFrame(loop);
   });

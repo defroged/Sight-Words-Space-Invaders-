@@ -161,4 +161,54 @@
   background: #99ff99;
 }
 
+/* --- New Loading Screen Styles --- */
+
+#loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--app-height);
+  background: #000;
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 99; /* Below start screen, but above canvas */
+  color: white;
+  text-align: center;
+  /* Use the new 8-bit font */
+  font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#loading-screen p {
+  font-size: 10px;
+  color: #FFF;
+  margin-top: 20px;
+}
+
+/* A simple 8-bit blinking block animation */
+.loader-animation {
+  width: 20px;
+  height: 20px;
+  background-color: #00FF00; /* Green like the player */
+  /* Blinking animation */
+  animation: blink-loader 0.5s step-end infinite;
+  /* Ensure it looks blocky */
+  image-rendering: pixelated; 
+}
+
+/* Keyframes for the blinking animation */
+@keyframes blink-loader {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 

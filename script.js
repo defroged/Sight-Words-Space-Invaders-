@@ -30,7 +30,15 @@
   let lastShotTime = 0;
   const shotCooldown = 200; // ms
 
-  let rightTouchId = null;
+  // --- New state variables for button controls ---
+  let moveLeft = false;
+  let moveRight = false;
+  const playerSpeed = 350; // pixels per second
+
+  // --- Get button elements from the DOM ---
+  const leftBtn = document.getElementById('left-btn');
+  const rightBtn = document.getElementById('right-btn');
+  const shootBtn = document.getElementById('shoot-btn');
 
   const sightWords = [
     "the","and","to","of","a","in","is","you","that","it",
@@ -72,7 +80,6 @@
     hitsThisLevel = 0;
     levelWords = pickRandomWords(6);
     if (levelWords.length < 6) {
-      // reset if we ever run out (shouldn't really happen)
       levelWords = pickRandomWords(6);
     }
     spawnBatch();
@@ -87,10 +94,8 @@
       levelWords = pickRandomWords(6);
     }
 
-    // choose a target word from the 6 for this wave
     currentTargetWord = levelWords[Math.floor(Math.random() * levelWords.length)];
 
-    // randomize order of words for enemy positions
     const words = levelWords.slice();
     for (let i = words.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -102,7 +107,7 @@
     const spacing = count > 1 ? (width - margin * 2) / (count - 1) : 0;
 
     for (let i = 0; i < count; i++) {
-      const x = margin + spacing * i + (Math.random() * 40 - 20); // slight randomness
+      const x = margin + spacing * i + (Math.random() * 40 - 20);
       const y = -Math.random() * 160 - 60;
       enemies.push({
         x: Math.max(60, Math.min(width - 60, x)),
@@ -167,8 +172,14 @@
   function update(dt) {
     if (gameOver) return;
 
-    // player is moved directly by touch; nothing to update here besides clamp
-    clampPlayerX();
+    // --- Player movement based on button state ---
+    if (moveLeft) {
+      player.x -= playerSpeed * dt;
+    }
+    if (moveRight) {
+      player.x += playerSpeed * dt;
+    }
+    clampPlayerX(); // Clamp player position after moving
 
     // bullets (player)
     for (const b of bullets) {
@@ -180,7 +191,6 @@
     for (const e of enemies) {
       e.y += e.speed * dt;
 
-      // from level 4, slight weaving movement
       if (level >= 4) {
         const wave = Math.sin((e.y + e.word.length * 13) / 50);
         e.x += wave * 35 * dt;
@@ -189,7 +199,6 @@
         if (e.x > width - halfW - 10) e.x = width - halfW - 10;
       }
 
-      // from level 3, enemies shoot
       if (level >= 3) {
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
@@ -204,7 +213,6 @@
         }
       }
 
-      // enemy reaches bottom = fail
       if (e.y - e.height / 2 > height) {
         setGameOver("An enemy slipped through!");
       }
@@ -225,7 +233,6 @@
           const e = enemies[j];
           if (rectOverlap(b, e)) {
             if (e.word === currentTargetWord) {
-              // correct target
               score++;
               hitsThisLevel++;
 
@@ -233,11 +240,9 @@
                 level++;
                 startLevel();
               } else {
-                // new wave with same 6 words
                 spawnBatch();
               }
             } else {
-              // wrong word
               setGameOver("Wrong word!");
             }
             break outerLoop;
@@ -261,7 +266,6 @@
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    // simple starfield
     ctx.fillStyle = "#111";
     for (let i = 0; i < 40; i++) {
       const x = (i * 53) % width;
@@ -319,13 +323,15 @@
 
     ctx.textBaseline = "bottom";
     ctx.font = "16px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.fillText("Hit the word:", 10, height - 50);
+    // Adjust HUD to not overlap buttons
+    ctx.fillText("Hit the word:", 10, height - 120);
     ctx.font = "26px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.fillText(currentTargetWord, 10, height - 22);
+    ctx.fillText(currentTargetWord, 10, height - 92);
 
-    ctx.textAlign = "right";
-    ctx.font = "12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-    ctx.fillText("Right half: move ship  |  Left half: shoot", width - 10, height - 18);
+    // Removed the old controls text
+    // ctx.textAlign = "right";
+    // ctx.font = "12px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+    // ctx.fillText("Right half: move ship  |  Left half: shoot", width - 10, height - 18);
 
     if (gameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
@@ -342,74 +348,78 @@
       ctx.fillText(gameOverReason, width / 2, height / 2);
 
       ctx.font = "16px system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillText("Tap left side to restart", width / 2, height / 2 + 40);
+      // Updated restart text
+      ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 40);
     }
   }
 
-  // Touch controls
-  function movePlayerTo(x) {
-    const half = player.width / 2;
-    player.x = Math.max(half, Math.min(width - half, x));
-  }
+  // --- New Control Handlers ---
 
-  function handleTouchStart(e) {
-    e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
+  function setupControls() {
+    // --- Movement Listeners ---
+    // We need functions that handle both touch and mouse events
+    const startMove = (e, direction) => {
+      e.preventDefault();
+      if (direction === 'left') moveLeft = true;
+      if (direction === 'right') moveRight = true;
+    };
 
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      const x = touch.clientX - rect.left;
+    const endMove = (e, direction) => {
+      e.preventDefault();
+      // Check if the event is a touch event, and if so,
+      // only stop moving if all touches are off the button.
+      // This is a simple way to handle multi-touch, though
+      // for this game, just stopping is fine.
+      if (direction === 'left') moveLeft = false;
+      if (direction === 'right') moveRight = false;
+    };
 
-      if (x > width / 2) {
-        // right side: movement joystick
-        if (rightTouchId === null) rightTouchId = touch.identifier;
-        movePlayerTo(x);
+    // Left Button
+    leftBtn.addEventListener('touchstart', (e) => startMove(e, 'left'), { passive: false });
+    leftBtn.addEventListener('mousedown', (e) => startMove(e, 'left'), { passive: false });
+    leftBtn.addEventListener('touchend', (e) => endMove(e, 'left'), { passive: false });
+    leftBtn.addEventListener('touchcancel', (e) => endMove(e, 'left'), { passive: false });
+    leftBtn.addEventListener('mouseup', (e) => endMove(e, 'left'), { passive: false });
+    leftBtn.addEventListener('mouseleave', (e) => endMove(e, 'left'), { passive: false });
+
+    // Right Button
+    rightBtn.addEventListener('touchstart', (e) => startMove(e, 'right'), { passive: false });
+    rightBtn.addEventListener('mousedown', (e) => startMove(e, 'right'), { passive: false });
+    rightBtn.addEventListener('touchend', (e) => endMove(e, 'right'), { passive: false });
+    rightBtn.addEventListener('touchcancel', (e) => endMove(e, 'right'), { passive: false });
+    rightBtn.addEventListener('mouseup', (e) => endMove(e, 'right'), { passive: false });
+    rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
+
+    // --- Shoot/Restart Listener ---
+    const onShootPress = (e) => {
+      e.preventDefault();
+      if (gameOver) {
+        restartGame();
       } else {
-        // left side: shoot or restart
-        if (gameOver) {
-          restartGame();
-        } else {
-          shoot();
-        }
+        shoot();
       }
-    }
+    };
+
+    shootBtn.addEventListener('touchstart', onShootPress, { passive: false });
+    shootBtn.addEventListener('mousedown', onShootPress, { passive: false });
   }
-
-  function handleTouchMove(e) {
-    e.preventDefault();
-    if (rightTouchId === null) return;
-    const rect = canvas.getBoundingClientRect();
-
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      if (touch.identifier === rightTouchId) {
-        const x = touch.clientX - rect.left;
-        movePlayerTo(x);
-      }
-    }
-  }
-
-  function handleTouchEnd(e) {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      if (touch.identifier === rightTouchId) {
-        rightTouchId = null;
-      }
-    }
-  }
-
-  canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-  canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-  canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-  canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  
+  // Set up the new controls
+  setupControls();
 
   // Main loop
   let lastTime = 0;
   function loop(timestamp) {
-    const dt = (timestamp - lastTime) / 1000 || 0;
+    // Ensure dt is reasonable, especially on the first frame
+    let dt = (timestamp - lastTime) / 1000;
+    if (dt > 0.1) dt = 0.1; // Cap delta time to prevent large jumps
     lastTime = timestamp;
-    update(dt);
+
+    // Only run update if dt is valid
+    if (dt > 0) {
+      update(dt);
+    }
+    
     draw();
     requestAnimationFrame(loop);
   }

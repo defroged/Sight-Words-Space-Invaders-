@@ -25,9 +25,11 @@
     height: 26
   };
 
-  let bullets = [];
-  let enemies = [];
-  let enemyBullets = [];
+let bullets = [];
+  let enemies = [];
+  let enemyBullets = [];
+  let explosions = [];
+  let pendingSpawn = false; // Wait for explosion before next wave
 
   let level = 1;
   let levelWords = [];
@@ -343,6 +345,16 @@
     playSound('shoot');
   }
 
+  function createExplosion(x, y) {
+    const explosionDuration = 0.4; // 0.4 seconds
+    explosions.push({
+      x: x,
+      y: y,
+      timer: explosionDuration,
+      maxTimer: explosionDuration
+    });
+  }
+
   function rectOverlap(a, b) {
     const aL = a.x - a.width / 2;
     const aR = a.x + a.width / 2;
@@ -396,6 +408,28 @@
 
   function update(dt) {
     if (gameOver) return;
+
+    // --- Update explosions ---
+    for (let i = explosions.length - 1; i >= 0; i--) {
+      const expl = explosions[i];
+      expl.timer -= dt;
+      if (expl.timer <= 0) {
+        explosions.splice(i, 1);
+      }
+    }
+
+    // --- Check for pending spawn ---
+    // If we are waiting to spawn, and all explosions are finished, spawn now.
+    if (pendingSpawn && explosions.length === 0) {
+      pendingSpawn = false;
+      if (hitsThisLevel >= hitsPerLevel) {
+        level++;
+        playSound('levelUp');
+        startLevel();
+      } else {
+        spawnBatch();
+      }
+    }
 
     // --- Player movement based on button state ---
     if (moveLeft) {
@@ -484,7 +518,8 @@
     enemyBullets = enemyBullets.filter(b => b.y - b.height / 2 < height + 30);
 
     // collisions: player bullets with enemies
-    if (!gameOver) {
+    // Only check collisions if not game over AND not waiting for the next wave
+    if (!gameOver && !pendingSpawn) {
       outerLoop:
       for (let i = 0; i < bullets.length; i++) {
         const b = bullets[i];
@@ -492,20 +527,28 @@
           const e = enemies[j];
           if (rectOverlap(b, e)) {
             if (e.word === currentTargetWord) {
+              // --- CORRECT HIT ---
               score++;
               hitsThisLevel++;
               playSound('hitCorrect');
+              createExplosion(e.x, e.y); // Create explosion
+              pendingSpawn = true; // Set flag to spawn next wave
 
-              if (hitsThisLevel >= hitsPerLevel) {
-                level++;
-                playSound('levelUp');
-                startLevel();
-              } else {
-                spawnBatch();
-             }
+              // Clear all remaining enemies and bullets manually
+              // The pendingSpawn logic will handle the respawn.
+              enemies = [];
+              bullets = [];
+
             } else {
+              // --- WRONG HIT ---
+              createExplosion(e.x, e.y); // Create explosion
               setGameOver("Wrong word!");
+
+              // Remove just the specific enemy and bullet
+              enemies.splice(j, 1);
+              bullets.splice(i, 1);
             }
+            // Stop all collision checks for this frame
             break outerLoop;
           }
         }
@@ -581,6 +624,43 @@
     for (const b of enemyBullets) {
       ctx.fillRect(b.x - b.width / 2, b.y - b.height / 2, b.width, b.height);
     }
+
+    // --- DRAW EXPLOSIONS ---
+    for (const expl of explosions) {
+      const progress = 1 - (expl.timer / expl.maxTimer); // 0 -> 1
+      const stage = Math.floor(progress * 4); // 0, 1, 2, 3
+
+      // We'll draw expanding, multi-colored squares
+      switch (stage) {
+        case 0: // Small white flash
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(expl.x - 4, expl.y - 4, 8, 8);
+          ctx.fillRect(expl.x - 8, expl.y + 2, 4, 4);
+          ctx.fillRect(expl.x + 4, expl.y - 6, 4, 4);
+          break;
+        case 1: // Yellow/Orange expanding
+          ctx.fillStyle = "#FFFF00"; // Yellow
+          ctx.fillRect(expl.x - 8, expl.y - 8, 16, 16);
+          ctx.fillStyle = "#FFA500"; // Orange
+          ctx.fillRect(expl.x - 4, expl.y - 4, 8, 8);
+          break;
+        case 2: // Orange/Red, bigger
+          ctx.fillStyle = "#FFA500"; // Orange
+          ctx.fillRect(expl.x - 12, expl.y - 12, 24, 24);
+          ctx.fillStyle = "#FF0000"; // Red
+          ctx.fillRect(expl.x - 6, expl.y - 6, 12, 12);
+          break;
+        case 3: // Fading Red/Orange (disappearing)
+          ctx.fillStyle = "#FF0000"; // Red
+          ctx.fillRect(expl.x - 8, expl.y + 4, 8, 8);
+          ctx.fillRect(expl.x + 4, expl.y - 4, 8, 8);
+          ctx.fillStyle = "#FFA500"; // Orange
+          ctx.fillRect(expl.x + 2, expl.y + 8, 4, 4);
+          ctx.fillRect(expl.x - 6, expl.y - 6, 4, 4);
+          break;
+      }
+    }
+    // --- END EXPLOSIONS ---
 
     // HUD
     ctx.fillStyle = "#ffffff";

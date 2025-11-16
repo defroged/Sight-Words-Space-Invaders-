@@ -631,7 +631,7 @@ let bullets = [];
             y: e.y + e.height / 2,
             width: 6,
             height: 18,
-            speed: 260 + level * 35
+            speed: 120 + level * 15
           });
           playSound('enemyShoot');
         }

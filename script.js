@@ -766,13 +766,7 @@ let bullets = [];
     ctx.fillText("Score: " + score, 10, 26);
     ctx.fillText("Streak: " + hitsThisLevel + " / " + hitsPerLevel, 10, 44);
 
-    ctx.textBaseline = "bottom";
-    ctx.font = "10px 'Press Start 2P'";
-    // Adjust HUD to not overlap buttons
-    ctx.fillText("Hit the word:", 10, height - 120);
-    ctx.font = "16px 'Press Start 2P'";
-    ctx.fillStyle = "#00FF00"; // Make the target word green
-    ctx.fillText(currentTargetWord, 10, height - 92);
+    // Target word text removed (now audio-only)
 
     if (gameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";

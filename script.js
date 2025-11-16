@@ -1,6 +1,11 @@
-(function () {
+function () {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+
+  // --- Web Audio API ---
+  let audioContext;
+  let soundBank = {};
+  let isAudioReady = false;
 
   // Force pixelated rendering
   ctx.imageSmoothingEnabled = false;
@@ -97,7 +102,158 @@
   document.addEventListener('msfullscreenchange', resize);
 
 
-  resize(); // Initial call to set size before game starts
+  resize();
+
+  // --- Audio Functions ---
+
+  /**
+   * Plays a sound from the sound bank.
+   * @param {string} name - The name of the sound to play.
+   */
+  function playSound(name) {
+    if (isAudioReady && soundBank[name]) {
+      soundBank[name]();
+    }
+  }
+
+  /**
+   * Initializes the Web Audio API and creates the sound synthesizer functions.
+   * This MUST be called from a user-initiated event (like a click).
+   */
+  function initAudio() {
+    if (audioContext) return; // Already initialized
+
+    try {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      isAudioReady = true;
+
+      // --- Define all our sounds ---
+
+      soundBank['shoot'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.linearRampToValueAtTime(400, now + 0.08);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.08);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      };
+
+      soundBank['enemyShoot'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(200, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      };
+
+      soundBank['hitCorrect'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(1200, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.1);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      };
+
+      soundBank['hitWrong'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.2);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      };
+
+      soundBank['playerHit'] = () => {
+        // Generate white noise for an explosion
+        const now = audioContext.currentTime;
+        const bufferSize = audioContext.sampleRate * 0.5; // 0.5 sec
+        const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioContext.createBufferSource();
+        noise.buffer = buffer;
+        const gain = audioContext.createGain();
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        noise.connect(gain);
+        gain.connect(audioContext.destination);
+        noise.start(now);
+        noise.stop(now + 0.5);
+      };
+      
+      // Alias for a game over
+      soundBank['gameOver'] = soundBank['playerHit'];
+
+      soundBank['levelUp'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'square';
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.5);
+
+        // Arpeggio
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.linearRampToValueAtTime(554.37, now + 0.1);
+        osc.frequency.linearRampToValueAtTime(659.25, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(880, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      };
+
+      soundBank['startGame'] = () => {
+        const now = audioContext.currentTime;
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(261.63, now); // C4
+        osc.frequency.setValueAtTime(329.63, now + 0.1); // E4
+        osc.frequency.setValueAtTime(392.00, now + 0.2); // G4
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      };
+
+    } catch (e) {
+      console.error("Web Audio API is not supported in this browser", e);
+      isAudioReady = false;
+    }
+  }
 
   function clampPlayerX() {
     const half = player.width / 2;
@@ -181,6 +337,8 @@
       height: 16,
       speed: 520
     });
+    
+    playSound('shoot');
   }
 
   function rectOverlap(a, b) {
@@ -198,8 +356,25 @@
   }
 
   function setGameOver(reason) {
+    if (gameOver) return; // Don't trigger twice
+
     gameOver = true;
     gameOverReason = reason || "Game Over";
+
+    // Play the appropriate sound based on the reason
+    switch (reason) {
+      case "Wrong word!":
+        playSound('hitWrong');
+        break;
+      case "You were hit!":
+        playSound('playerHit');
+        break;
+      case "An enemy slipped through!":
+        playSound('gameOver');
+        break;
+      default:
+        playSound('gameOver');
+    }
   }
 
   function restartGame() {
@@ -214,6 +389,7 @@
     player.x = width / 2;
     clampPlayerX();
     startLevel();
+    playSound('startGame');
   }
 
   function update(dt) {
@@ -289,6 +465,7 @@
             height: 18,
             speed: 260 + level * 35
           });
+          playSound('enemyShoot');
         }
       }
 
@@ -315,9 +492,11 @@
             if (e.word === currentTargetWord) {
               score++;
               hitsThisLevel++;
+              playSound('hitCorrect');
 
               if (hitsThisLevel >= hitsPerLevel) {
                 level++;
+                playSound('levelUp');
                 startLevel();
               } else {
                 spawnBatch();
@@ -524,6 +703,9 @@
 
   // --- Start Button Listener ---
   playBtn.addEventListener('click', () => {
+    // 0. Initialize the Audio Context (MUST be first)
+    initAudio();
+
     // 1. Hide start screen
     startScreen.style.display = 'none';
 
@@ -569,5 +751,4 @@
 
   // We no longer start the game here, we wait for the play button.
 })();
-
 

@@ -60,6 +60,12 @@
   ];
 
   function resize() {
+    // Keep CSS layout (var(--app-height)) in sync with the real viewport height.
+    document.documentElement.style.setProperty(
+      '--app-height',
+      `${window.innerHeight}px`
+    );
+
     width = window.innerWidth;
     height = window.innerHeight;
     canvas.width = width;
@@ -68,15 +74,23 @@
     clampPlayerX();
   }
 
+
   window.addEventListener('resize', resize);
 
-  // --- New Fullscreen Change Listeners ---
+  // On mobile, orientation changes may update innerHeight a little later,
+  // so nudge resize shortly after the event.
+  window.addEventListener('orientationchange', () => {
+    setTimeout(resize, 250);
+  });
+
+  // --- Fullscreen Change Listeners ---
   // These events fire *after* the browser has entered or exited
   // fullscreen, ensuring window.innerHeight is correct.
   document.addEventListener('fullscreenchange', resize);
   document.addEventListener('webkitfullscreenchange', resize);
   document.addEventListener('mozfullscreenchange', resize);
   document.addEventListener('msfullscreenchange', resize);
+
 
   resize(); // Initial call to set size before game starts
 
@@ -449,16 +463,32 @@
   // --- Fullscreen API Handler ---
   function enterFullScreen() {
     const element = document.documentElement; // Request fullscreen for the whole page
-    if (element.requestFullscreen) {
-      element.requestFullscreen();
-    } else if (element.webkitRequestFullscreen) { // Safari
-      element.webkitRequestFullscreen();
-    } else if (element.mozRequestFullScreen) { // Firefox
-      element.mozRequestFullScreen();
-    } else if (element.msRequestFullscreen) { // IE/Edge
-      element.msRequestFullscreen();
+    const requestFullScreen =
+      element.requestFullscreen ||
+      element.webkitRequestFullscreen ||
+      element.mozRequestFullScreen ||
+      element.msRequestFullscreen;
+
+    const fallbackToPseudoFullscreen = () => {
+      // For browsers (especially iOS/Firefox) that don't support fullscreen
+      // for arbitrary elements: use our dynamic height + a tiny scroll.
+      resize();
+      window.scrollTo(0, 1);
+    };
+
+    if (requestFullScreen) {
+      const result = requestFullScreen.call(element);
+      // Modern Fullscreen API returns a Promise; if it fails, use fallback.
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {
+          fallbackToPseudoFullscreen();
+        });
+      }
+    } else {
+      fallbackToPseudoFullscreen();
     }
   }
+
 
   // --- Start Button Listener ---
   playBtn.addEventListener('click', () => {
@@ -469,22 +499,24 @@
     canvas.style.display = 'block';
     controls.style.display = 'flex'; // Use 'flex' as defined in CSS
 
-    // 3. Request full screen (required by user interaction)
+    // 3. Make sure our CSS var and canvas size match the current viewport
+    resize();
+
+    // 4. Try real fullscreen where supported; otherwise fall back
+    //    to the pseudo-fullscreen behavior (mobile iOS/Firefox).
     enterFullScreen();
 
-    // 4. The 'fullscreenchange' event listener will now handle
-    //    calling resize() automatically when fullscreen activates.
-    //    We no longer call resize() here.
+    // 5. A small delayed resize helps once browser toolbars finish animating.
+    setTimeout(resize, 350);
 
-    // 5. Start the game logic
+    // 6. Start the game logic
     restartGame();
     
-    // 6. Start the main game loop
-    // We call this here so the loop doesn't run in the background
-    // before the player hits "Play".
+    // 7. Start the main game loop
     lastTime = performance.now(); // Initialize lastTime right before starting
     requestAnimationFrame(loop);
   });
+
 
   // Main loop
   let lastTime = 0;

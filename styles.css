@@ -1,15 +1,20 @@
 /* styles.css*/
  
-    html, body {
+    :root {
+      /* Will be kept in sync with window.innerHeight by JS */
+      --app-height: 100vh;
+    }
+
+    html,
+    body {
       margin: 0;
       padding: 0;
       width: 100%;
-      height: 100%;
+      height: var(--app-height);
       background: #000;
       overflow: hidden;
       /* touch-action: none prevents browser gestures like pull-to-refresh
-        or overscroll, which is critical for a full-screen game.
-      */
+        or overscroll, which is critical for a full-screen game. */
       touch-action: none;
       -webkit-user-select: none; /* Prevents text selection */
       user-select: none;
@@ -19,7 +24,7 @@
     canvas {
       display: none;
       width: 100%;
-      height: 100%;
+      height: var(--app-height);
       touch-action: none;
     }
 
@@ -112,7 +117,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: var(--app-height);
   background: #000;
   display: flex;
   flex-direction: column;
@@ -124,6 +129,7 @@
   /* Use the same font as the rest of the app */
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
+
 
 #start-screen h1 {
   font-size: 2.5rem;

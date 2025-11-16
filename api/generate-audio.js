@@ -41,8 +41,7 @@ export default async function handler(req, res) {
           text: word,
           model_id: MODEL_ID,
           voice_settings: {
-            stability: 0.75,
-            similarity_boost: 0.75,
+            stability: 1
           },
         }),
       });

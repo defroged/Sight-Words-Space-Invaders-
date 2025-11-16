@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid request: "words" array is required.' });
   }
 
-  const VOICE_ID = 'O4fnkotIypvedJqBp4yb';
+  const VOICE_ID = 'RILOU7YmBhvwJGDGjNmP';
   const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
   const MODEL_ID = 'eleven_multilingual_v2';
   const audioMap = {}; // Collect all results here

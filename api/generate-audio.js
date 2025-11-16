@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   const VOICE_ID = 'O4fnkotIypvedJqBp4yb';
   const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
-  const MODEL_ID = 'eleven_v3';
+  const MODEL_ID = 'eleven_multilingual_v2';
   const audioMap = {}; // Collect all results here
 
   try {
@@ -39,7 +39,11 @@ export default async function handler(req, res) {
           text: `${word} ...`,
           model_id: MODEL_ID,
           voice_settings: {
-            stability: 1
+            stability: 0.4,
+			style: 0,
+			similarity_boost: 0.40,
+			use_speaker_boost: true,
+			speed: 1
            },
         }),
       });

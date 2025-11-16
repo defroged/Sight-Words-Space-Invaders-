@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   // --- ElevenLabs Configuration ---
   // Using "Rachel" (21m00Tcm4TlvDq8ikWAM) as a clear, default voice.
   // You can find other voice IDs in your ElevenLabs "Voice Lab".
-  const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+  const VOICE_ID = 'O4fnkotIypvedJqBp4yb';
    const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
   // --- UPDATED MODEL ID ---
   const MODEL_ID = 'eleven_v3'; // Was 'eleven_monolingual_v1'

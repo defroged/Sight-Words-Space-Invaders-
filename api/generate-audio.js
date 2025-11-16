@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   try {
     // 4. Loop through each word *sequentially* (one by one)
     for (const word of words) {
-      console.log(`Processing word: ${word}...`);
+      console.log(`Processing word: "${word}"`);
       
       const response = await fetch(ELEVENLABS_URL, {
         method: 'POST',
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           'Accept': 'audio/mpeg'
         },
         body: JSON.stringify({
-          text: `${word} ...`,
+          text: `"${word}"`,
           model_id: MODEL_ID,
           voice_settings: {
             stability: 0.4,

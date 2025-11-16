@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           'Accept': 'audio/mpeg'
         },
         body: JSON.stringify({
-          text: word,
+          text: `${word} ...`,
           model_id: MODEL_ID,
           voice_settings: {
             stability: 1

@@ -22,7 +22,7 @@
 
   const player = {
     x: width / 2,
-    y: height - 80,
+    y: height - 30,
     width: 70,
     height: 26
   };
@@ -86,7 +86,7 @@ let bullets = [];
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
-    player.y = height - 80;
+    player.y = height - 30;
     clampPlayerX();
   }
 
@@ -637,11 +637,11 @@ let bullets = [];
         }
       }
 
-      // Game over check (remains the same)
-      if (e.y - e.height / 2 > height) {
-        setGameOver("An enemy slipped through!");
-      }
-    }
+      // Game over check (when enemy reaches player)
+      if (e.y + e.height / 2 > player.y - player.height / 2) {
+        setGameOver("An enemy slipped through!");
+      }
+    }
 
     // enemy bullets
     for (const b of enemyBullets) {

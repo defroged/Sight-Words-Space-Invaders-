@@ -736,8 +736,16 @@ const sightWords = [
         }
       }
 
-      // Game over check (when enemy reaches player)
-      if (e.y + e.height / 2 > player.y - player.height / 2) {
+      // --- COLLISION & GAME OVER CHECKS ---
+
+      // 1. Check if enemy physically hit the player (Drones or Regular)
+      if (rectOverlap(player, e)) {
+         setGameOver("You were hit!");
+      }
+
+      // 2. Game over check (when enemy reaches bottom)
+      // Drones are exempt from this specific check; they only kill via collision
+      if (!e.isDrone && e.y + e.height / 2 > player.y - player.height / 2) {
         setGameOver("An enemy slipped through!");
       }
     }

@@ -291,25 +291,7 @@ const sightWords = [
       // Alias for a game over
       soundBank['gameOver'] = soundBank['playerHit'];
 
-      soundBank['levelUp'] = () => {
-        const now = audioContext.currentTime;
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.type = 'square';
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0, now + 0.5);
-
-        // Arpeggio
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.linearRampToValueAtTime(554.37, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(659.25, now + 0.2);
-        osc.frequency.linearRampToValueAtTime(880, now + 0.3);
-
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.start(now);
-        osc.stop(now + 0.5);
-      };
+      // Old levelUp sound removed (replaced by MP3 load in playBtn listener)
 
       soundBank['startGame'] = () => {
         const now = audioContext.currentTime;
@@ -1477,9 +1459,10 @@ const sightWords = [
     initAudio();
     
     // 2. Load ALL audio for the entire game
-    // We use Promise.all to load words and boss music in parallel
+    // We use Promise.all to load words, level up sound, and boss music in parallel
     await Promise.all([
       loadWordAudio(sightWords),
+      loadStaticAudio('/level-up.mp3', 'levelUp', false), // NEW: Load level up MP3
       // Pass true as the 3rd argument to enable looping
       loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);

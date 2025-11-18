@@ -781,20 +781,16 @@ const sightWords = [
               
               if (e.isBoss) {
                 e.hp--;
-                
-                // BOSS RETALIATION!
-                if (e.hp > 0) {
-                  // Always Spawn Drones (No bullets)
-                  spawnDrone();
-                  spawnDrone();
-                } else {
-                   // Boss Destroyed
-                   score += 50; // Bonus score
-                   hitsThisLevel = hitsPerLevel; // Force level completion
-                   pendingSpawn = true; 
-                   enemies = []; // Clear boss and drones
+
+                // Boss Destroyed Check
+                if (e.hp <= 0) {
+                   score += 100; // Increased Bonus score
+                   hitsThisLevel = hitsPerLevel; // Max out hits to satisfy level-up condition
+                   pendingSpawn = true; // Trigger the level completion logic in the main loop
+                   enemies = []; // Remove the boss immediately
                 }
-              } 
+                // We no longer spawn drones here. The Boss is the only word.
+              }
               else {
                 // Normal Enemy Hit
                 score++;

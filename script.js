@@ -1063,10 +1063,44 @@ const sightWords = [
   // --- New Control Handlers ---
 
   function setupControls() {
+    // --- Cheat Code Variables ---
+    let inputHistory = [];
+    const cheatSequence = ['left', 'right', 'left', 'right'];
+
     // --- Movement Listeners ---
-    // We need functions that handle both touch and mouse events
     const startMove = (e, direction) => {
       e.preventDefault();
+
+      // --- CHEAT CODE LOGIC ---
+      inputHistory.push(direction);
+      // Keep the history buffer only as long as the cheat code
+      if (inputHistory.length > cheatSequence.length) {
+        inputHistory.shift(); 
+      }
+      
+      // Check if the last 4 inputs match "Left, Right, Left, Right"
+      // We use JSON.stringify for a quick array comparison
+      if (JSON.stringify(inputHistory) === JSON.stringify(cheatSequence)) {
+         // --- ACTIVATE CHEAT ---
+         level = 10; // Jump to Boss Level
+         score += 1000; // Cheat bonus
+         
+         // Reset game state elements so we don't crash
+         hitsThisLevel = 0;
+         gameOver = false; 
+         enemies = [];
+         bullets = [];
+         enemyBullets = [];
+         pendingSpawn = false;
+
+         playSound('levelUp'); // Audio confirmation
+         startLevel(); // Start the level immediately
+         
+         inputHistory = []; // Reset history so it doesn't trigger twice
+         return; // Don't move the ship on the final trigger tap
+      }
+      // ------------------------
+
       if (direction === 'left') moveLeft = true;
       if (direction === 'right') moveRight = true;
     };

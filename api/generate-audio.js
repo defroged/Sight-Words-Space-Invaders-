@@ -15,9 +15,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid request' });
   }
 
-  const VOICE_ID = 'RILOU7YmBhvwJGDGjNmP';
+  const VOICE_ID = 'EkK5I93UQWFDigLMpZcX';
   const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
-  const MODEL_ID = 'eleven_multilingual_v2'; // You can stick with this, or try 'eleven_turbo_v2_5'
+  const MODEL_ID = 'eleven_v3'; 
   const audioMap = {};
 
   try {
@@ -43,15 +43,7 @@ export default async function handler(req, res) {
           voice_settings: {
             // --- FIX 2: High Stability for Clarity ---
             // 0.80 makes the voice consistent and clear (less "acting").
-            stability: 0.80, 
-            
-            // Keep style low to avoid weird emotional inflections
-            style: 0.0, 
-            
-            // Boost clarity
-            similarity_boost: 0.75, 
-            use_speaker_boost: true,
-            speed: 0.9 // --- FIX 3: Slow it down slightly (0.9 is 90% speed)
+            stability: 1
            },
         }),
       });

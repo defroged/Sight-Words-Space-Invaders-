@@ -55,6 +55,11 @@ let bullets = [];
   let enemyDirection = 1; // 1 for right, -1 for left
   const enemyStartY = 30;
 
+  // --- NEW: Boss Intro Animation State ---
+  let isBossIntro = false;
+  let bossIntroTimer = 0;
+  const bossIntroDuration = 9.8; // Exactly 9.8 seconds
+
   let gameOver = false;
   let gameOverReason = '';
 
@@ -460,10 +465,15 @@ const sightWords = [
     }
     currentMusicSource = playSound('bossMusic'); // Play and track the music
 
+    // --- TRIGGER INTRO ANIMATION ---
+    isBossIntro = true;
+    bossIntroTimer = bossIntroDuration;
+
     // Create the Boss Object
     enemies.push({
       x: width / 2,
-      y: 120,
+      y: -150, // Spawn OFF-SCREEN (Top)
+      targetY: 120, // The final Y position we want to reach
       width: 220, // Much wider
       height: 90,
       word: currentTargetWord,
@@ -556,6 +566,9 @@ const sightWords = [
 
   function shoot() {
     if (gameOver) return;
+    // NEW: Disable shooting during boss intro
+    if (isBossIntro) return;
+
     const now = performance.now();
     if (now - lastShotTime < shotCooldown) return;
     lastShotTime = now;
@@ -638,8 +651,37 @@ const sightWords = [
   }
 
   function update(dt) {
-    // --- NEW: Shake Decay ---
-    if (screenShake > 0) {
+    // --- NEW: Boss Intro Logic ---
+    if (isBossIntro) {
+        bossIntroTimer -= dt;
+        
+        // 1. Constant Rumble
+        screenShake = 5; 
+
+        // 2. Move Boss Down
+        const boss = enemies.find(e => e.isBoss);
+        if (boss) {
+            // We want the boss to reach targetY (120) by the time timer hits 2.0s
+            // (Leaving 2 seconds for dramatic hover before fight starts)
+            const entryDuration = bossIntroDuration - 2.0; 
+            const distance = boss.targetY - (-150); // Total distance to travel
+            const speed = distance / entryDuration;
+            
+            if (boss.y < boss.targetY) {
+                boss.y += speed * dt;
+            } else {
+                boss.y = boss.targetY; // Snap to position
+            }
+        }
+
+        // 3. End Intro
+        if (bossIntroTimer <= 0) {
+            isBossIntro = false;
+            screenShake = 0; // Stop shaking
+        }
+    }
+    // Only decay shake if NOT in boss intro (because intro forces shake)
+    else if (screenShake > 0) {
       screenShake -= dt * 60; // Decay speed
       if (screenShake < 0) screenShake = 0;
     }
@@ -650,8 +692,8 @@ const sightWords = [
     if (gameOver) return;
 
     // --- NEW: Handle Level Up state ---
-    // If we are leveling up, pause all game logic
-    if (isLevelingUp) {
+    // If we are leveling up, pause all game logic
+    if (isLevelingUp) {
       levelUpTimer -= dt;
       if (levelUpTimer <= 0) {
         isLevelingUp = false;
@@ -748,15 +790,32 @@ const sightWords = [
       
       // --- CASE A: BOSS MOVEMENT ---
       if (e.isBoss) {
-        // Gentle Hover effect
-        e.hoverOffset = (e.hoverOffset || 0) + dt * 2;
-        e.x = (width / 2) + Math.sin(e.hoverOffset) * 50; // Hover left/right
-        e.y = 120 + Math.cos(e.hoverOffset * 1.5) * 15;   // Hover up/down
+        if (isBossIntro) {
+            // During intro, boss just moves down (handled in main update block)
+            // We add a slight wobble here for realism
+            e.x = (width / 2) + Math.sin(bossIntroTimer * 10) * 2; 
+        } else {
+            // Standard Hover effect
+            e.hoverOffset = (e.hoverOffset || 0) + dt * 2;
+            e.x = (width / 2) + Math.sin(e.hoverOffset) * 50; // Hover left/right
+            e.y = 120 + Math.cos(e.hoverOffset * 1.5) * 15;   // Hover up/down
 
-        // Boss Attack Logic (Spawn Homing Spaceship)
-        e.attackTimer -= dt;
-        if (e.attackTimer <= 0) {
-          e.attackTimer = 3.5; // Fire every 3.5 seconds
+            // Boss Attack Logic (Spawn Homing Spaceship)
+            e.attackTimer -= dt;
+            if (e.attackTimer <= 0) {
+              e.attackTimer = 3.5; // Fire every 3.5 seconds
+              enemyBullets.push({
+                x: e.x,
+                y: e.y + e.height / 2,
+                width: 20, // Larger than normal bullets
+                height: 20,
+                speed: 120, // Slow speed
+                isHoming: true // Special flag for movement
+              });
+              playSound('enemyShoot');
+            }
+        }
+      }
           enemyBullets.push({
             x: e.x,
             y: e.y + e.height / 2,
@@ -921,7 +980,13 @@ const sightWords = [
   }
 
   function updateStars(dt) {
-    const baseSpeed = 100 + (level * 10); // NEW: Stars get faster as you level up
+    let baseSpeed = 100 + (level * 10); // NEW: Stars get faster as you level up
+    
+    // NEW: Warp speed effect during boss intro
+    if (isBossIntro) {
+        baseSpeed = 800; 
+    }
+
     for (const star of stars) {
       // Movement depends on depth (1/z). Closer stars move faster.
       star.y += (baseSpeed / star.z) * dt; 
@@ -935,7 +1000,16 @@ const sightWords = [
   }
 
   function drawBackground() {
-    ctx.fillStyle = "#000000";
+    if (isBossIntro) {
+        // Pulse Red/Black for danger effect
+        // We use a sine wave based on the timer
+        const pulse = Math.sin(bossIntroTimer * 5) * 0.5 + 0.5; // 0 to 1
+        const redVal = Math.floor(pulse * 40); // 0 to 40
+        ctx.fillStyle = `rgb(${redVal}, 0, 0)`;
+    } else {
+        ctx.fillStyle = "#000000";
+    }
+    
     ctx.fillRect(0, 0, width, height);
 
     // Draw moving stars with depth

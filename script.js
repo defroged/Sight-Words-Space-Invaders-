@@ -942,7 +942,7 @@ const sightWords = [
 
                 // Boss Destroyed Check
                 if (e.hp <= 0) {
-                   score += 100; // Increased Bonus score
+                   score += 300; // Increased Bonus score
                    hitsThisLevel = hitsPerLevel; // Max out hits to satisfy level-up condition
                    pendingSpawn = true; // Trigger the level completion logic in the main loop
                    enemies = []; // Remove the boss immediately
@@ -957,7 +957,7 @@ const sightWords = [
               }
               else {
                 // Normal Enemy Hit
-                score++;
+                score += 10;
                 hitsThisLevel++;
                 
                 // Logic: If it's a drone, just remove it. 

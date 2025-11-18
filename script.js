@@ -7,6 +7,7 @@
   let soundBank = {};
   let isAudioReady = false;
   let isBatchAudioLoading = false; // NEW: Tracks if TTS audio is loading
+  let currentMusicSource = null; // Tracks the currently playing background music
 
   // Force pixelated rendering
   ctx.imageSmoothingEnabled = false;
@@ -152,13 +153,14 @@ const sightWords = [
 
   // --- Audio Functions ---
 
-  /**
+/**
    * Plays a sound from the sound bank.
    * @param {string} name - The name of the sound to play.
+   * @returns {AudioBufferSourceNode|undefined} The source node if played.
    */
   function playSound(name) {
     if (isAudioReady && soundBank[name]) {
-      soundBank[name]();
+      return soundBank[name]();
     }
   }
 
@@ -317,6 +319,7 @@ const sightWords = [
         source.buffer = buffer;
         source.connect(audioContext.destination);
         source.start(0);
+        return source;
       } catch (e) {
         console.error("Error playing buffer:", e);
       }
@@ -447,7 +450,12 @@ const sightWords = [
     currentTargetWord = sightWords[randomIndex];
     
     playSound(currentTargetWord);
-    playSound('bossMusic'); // Play the loaded boss music
+    
+    // Stop any existing music first to be safe
+    if (currentMusicSource) {
+        try { currentMusicSource.stop(); } catch(e) {}
+    }
+    currentMusicSource = playSound('bossMusic'); // Play and track the music
 
     // Create the Boss Object
     enemies.push({
@@ -859,6 +867,12 @@ const sightWords = [
                    hitsThisLevel = hitsPerLevel; // Max out hits to satisfy level-up condition
                    pendingSpawn = true; // Trigger the level completion logic in the main loop
                    enemies = []; // Remove the boss immediately
+
+                   // Stop Boss Music
+                   if (currentMusicSource) {
+                       try { currentMusicSource.stop(); } catch(e) {}
+                       currentMusicSource = null;
+                   }
                 }
                 // We no longer spawn drones here. The Boss is the only word.
               }

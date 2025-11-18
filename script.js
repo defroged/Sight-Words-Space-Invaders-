@@ -76,16 +76,27 @@ let bullets = [];
   const shootBtn = document.getElementById('shoot-btn');
 
 const sightWords = [
-  "the",
-  "and",
-  "to",
-  "you",
-  "said",
-  "was",
-  "are",
-  "for",
-  "look",
-  "come"
+  "clean",
+  "dirty",
+  "beautiful",
+  "ugly",
+  "wet",
+  "dry",
+  "good",
+  "bad",
+  "happy",
+  "sad",
+  "strong",
+  "weak",
+  "He",
+  "She",
+  "It",
+  "young",
+  "old",
+  "fat",
+  "thin",
+  "tall",
+  "short"
 ];
 
   function initStars() {

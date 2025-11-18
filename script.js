@@ -101,6 +101,7 @@ let bullets = [];
   const leftBtn = document.getElementById('left-btn');
   const rightBtn = document.getElementById('right-btn');
   const shootBtn = document.getElementById('shoot-btn');
+  const replayBtn = document.getElementById('replay-btn'); // NEW
 
 const sightWords = [
   "clean",
@@ -1331,6 +1332,17 @@ const sightWords = [
       if (direction === 'left') moveLeft = false;
       if (direction === 'right') moveRight = false;
     };
+
+    // --- Replay Button (Plays current word) ---
+    const onReplayPress = (e) => {
+      e.preventDefault(); // Prevent ghost clicks/selection
+      if (currentTargetWord) {
+        playSound(currentTargetWord);
+      }
+    };
+
+    replayBtn.addEventListener('touchstart', onReplayPress, { passive: false });
+    replayBtn.addEventListener('mousedown', onReplayPress, { passive: false });
 
     // Left Button
     leftBtn.addEventListener('touchstart', (e) => startMove(e, 'left'), { passive: false });

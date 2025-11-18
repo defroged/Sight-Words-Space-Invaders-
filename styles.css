@@ -103,10 +103,20 @@
     /* Container for the left/right buttons */
     .move-controls {
       display: flex;
+      align-items: flex-end; /* Align the standalone Right button to the bottom */
     }
 
+    /* New wrapper to stack Replay and Left buttons vertically */
+    .control-col {
+      display: flex;
+      flex-direction: column;
+      gap: 15px; /* Space between Replay and Left button */
+      margin-right: 15px; /* Space between the left group and the right button */
+    }
+
+    /* Remove specific margins from buttons, let the container handle it */
     .move-controls button {
-      margin-right: 15px; /* Space between left and right buttons */
+      margin-right: 0;
     }
 
     /* Specific style for the shoot button to make it bigger */

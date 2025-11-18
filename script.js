@@ -838,7 +838,7 @@ const sightWords = [
             y: e.y + e.height / 2,
             width: 20, // Larger than normal bullets
             height: 20,
-            speed: 120, // Slow speed
+            speed: 100, // Slow speed
             isHoming: true // Special flag for movement
           });
           playSound('enemyShoot');
@@ -867,7 +867,7 @@ const sightWords = [
           const dx = player.x - e.x;
           const dy = player.y - e.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const bulletSpeed = 140 + level * 15; 
+          const bulletSpeed = 110 + level * 10; 
 
           enemyBullets.push({
             x: e.x,

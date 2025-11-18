@@ -744,14 +744,19 @@ const sightWords = [
       
       // Functions are no longer async, so we can call them directly.
       if (hitsThisLevel >= hitsPerLevel) {
-        // --- LEVEL UP ---
-        level++;
-        playSound('levelUp');
-        isLevelingUp = true; // Set the new state
-        levelUpTimer = levelUpDuration; // Set the timer
-        // We DO NOT call startLevel() here anymore.
-        // The update() function will call it when the timer finishes.
-      } else {
+        // --- LEVEL UP ---
+        level++;
+
+        // NEW: Only play level up sound if it is NOT a boss level
+        if (level % 10 !== 0) {
+          playSound('levelUp');
+        }
+
+        isLevelingUp = true; // Set the new state
+        levelUpTimer = levelUpDuration; // Set the timer
+        // We DO NOT call startLevel() here anymore.
+        // The update() function will call it when the timer finishes.
+      } else {
         // Just spawn the next wave
         spawnBatch(); // No longer awaited
       }

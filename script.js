@@ -766,19 +766,18 @@ const sightWords = [
       }
     }
 
-    // enemy bullets
+// enemy bullets
     for (const b of enemyBullets) {
       if (b.isHoming) {
-        // Calculate vector towards player
-        const dx = player.x - b.x;
-        const dy = player.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        // Homing Logic:
+        // 1. Always move down so it eventually leaves the screen
+        b.y += b.speed * dt; 
+
+        // 2. Steer X towards player (Weak tracking)
+        const steerSpeed = 80; // Pixels per second
+        if (b.x < player.x) b.x += steerSpeed * dt;
+        if (b.x > player.x) b.x -= steerSpeed * dt;
         
-        // Move towards player if not already there
-        if (dist > 10) {
-          b.x += (dx / dist) * b.speed * dt;
-          b.y += (dy / dist) * b.speed * dt;
-        }
       } else {
         // Standard straight-line bullet
         b.x += b.vx * dt;

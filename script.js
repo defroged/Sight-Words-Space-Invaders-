@@ -393,24 +393,62 @@ const sightWords = [
   }
 
   function startLevel() { // No longer async
-    // NEW: Adjust enemy speed based on level. 3% faster per level.
-    currentEnemyMoveInterval = baseEnemyMoveInterval * Math.pow(0.97, level - 1);
-    
-    hitsThisLevel = 0;
-    levelWords = pickRandomWords(6);
-    if (levelWords.length < 6) {
-      levelWords = pickRandomWords(6);
-    }
-    // spawnBatch is no longer async
-    spawnBatch(); // No longer awaited
-  }
-
-  function spawnBatch() { // No longer async
+    // NEW: Adjust enemy speed based on level. 3% faster per level.
+    currentEnemyMoveInterval = baseEnemyMoveInterval * Math.pow(0.97, level - 1);
+    
+    hitsThisLevel = 0;
+    levelWords = pickRandomWords(6);
+    
     bullets = [];
     enemyBullets = [];
     enemies = [];
 
-    if (!levelWords || levelWords.length !== 6) {
+    // --- CHECK FOR BOSS LEVEL ---
+    if (level % 10 === 0) {
+      spawnBoss();
+    } else {
+      spawnBatch(); 
+    }
+  }
+
+  function spawnBoss() {
+    // Pick a random word from the pool to be the BOSS word
+    const randomIndex = Math.floor(Math.random() * sightWords.length);
+    currentTargetWord = sightWords[randomIndex];
+    playSound(currentTargetWord);
+
+    // Create the Boss Object
+    enemies.push({
+      x: width / 2,
+      y: 120,
+      width: 220, // Much wider
+      height: 90,
+      word: currentTargetWord,
+      isBoss: true,
+      hp: 10, // 10 Hits to kill
+      maxHp: 10,
+      hoverOffset: 0 // For visual floating effect
+    });
+  }
+
+  function spawnDrone() {
+    // Drones are small, fast, and contain WRONG words
+    const wrongWords = sightWords.filter(w => w !== currentTargetWord);
+    const randomWrong = wrongWords[Math.floor(Math.random() * wrongWords.length)];
+    
+    enemies.push({
+      x: width / 2 + (Math.random() * 100 - 50), // Spawn near boss center
+      y: 150, // Just below boss
+      width: 60,
+      height: 30,
+      word: randomWrong,
+      isDrone: true, // Special flag for movement logic
+      speed: 150 // Fast!
+    });
+  }
+
+  function spawnBatch() { // No longer async
+    if (levelWords.length < 6) {
       levelWords = pickRandomWords(6);
     }
 
@@ -421,56 +459,56 @@ const sightWords = [
     // We play it here so the player hears it as the wave appears.
     playSound(currentTargetWord);
 
-    const words = levelWords.slice();
+    const words = levelWords.slice();
     for (let i = words.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [words[i], words[j]] = [words[j], words[i]];
     }
 
     // Reset the step timer so enemies wait before the first step
-    enemyMoveTimer = currentEnemyMoveInterval;
+    enemyMoveTimer = currentEnemyMoveInterval;
     // Reset enemy direction to move right first
     enemyDirection = 1;
 
-  const margin = 70;
-  const count = words.length;
-  // Calculate spacing for a nice, even formation
-  const spacing = count > 1 ? (width - margin * 2) / (count - 1) : 0;
+    const margin = 70;
+    const count = words.length;
+    // Calculate spacing for a nice, even formation
+    const spacing = count > 1 ? (width - margin * 2) / (count - 1) : 0;
 
-  for (let i = 0; i < count; i++) {
-    // Calculate a precise, non-random x position
-    const x = margin + spacing * i;
-    enemies.push({
-      // Clamp the x position to stay on screen
-      x: Math.max(60, Math.min(width - 60, x)),
-      // All enemies share the same starting Y (Goal 1)
-      y: enemyStartY,
-      width: 90,
-      height: 50, // Increased height for more text room
-      word: words[i],
-      // 'speed' is no longer needed, movement is handled by the global timer
-      shootTimer: 0.8 + Math.random() * 1.5,
-      isShooter: false // NEW: Flag to designate if this enemy can shoot
-    });
-  }
+    for (let i = 0; i < count; i++) {
+      // Calculate a precise, non-random x position
+      const x = margin + spacing * i;
+      enemies.push({
+        // Clamp the x position to stay on screen
+        x: Math.max(60, Math.min(width - 60, x)),
+        // All enemies share the same starting Y (Goal 1)
+        y: enemyStartY,
+        width: 90,
+        height: 50, // Increased height for more text room
+        word: words[i],
+        // 'speed' is no longer needed, movement is handled by the global timer
+        shootTimer: 0.8 + Math.random() * 1.5,
+        isShooter: false // NEW: Flag to designate if this enemy can shoot
+      });
+    }
 
-    // --- NEW: Designate shooters based on level ---
-    let numShooters = 0;
-    if (level >= 3) {
-      // 1 shooter at level 3, +1 every 3 levels (level 6, 9, etc.)
-      numShooters = 1 + Math.floor((level - 3) / 3);
-    }
-    numShooters = Math.min(numShooters, enemies.length); // Cap at total enemy count
+    // --- NEW: Designate shooters based on level ---
+    let numShooters = 0;
+    if (level >= 3) {
+      // 1 shooter at level 3, +1 every 3 levels (level 6, 9, etc.)
+      numShooters = 1 + Math.floor((level - 3) / 3);
+    }
+    numShooters = Math.min(numShooters, enemies.length); // Cap at total enemy count
 
-    // Randomly assign shooters
-    let availableEnemies = enemies.map((_, i) => i); // Array of indices [0, 1, ..., 5]
-    while (numShooters > 0 && availableEnemies.length > 0) {
-      const randIndex = Math.floor(Math.random() * availableEnemies.length);
-      const enemyIndex = availableEnemies.splice(randIndex, 1)[0];
-      enemies[enemyIndex].isShooter = true;
-      numShooters--;
-    }
-}
+    // Randomly assign shooters
+    let availableEnemies = enemies.map((_, i) => i); // Array of indices [0, 1, ..., 5]
+    while (numShooters > 0 && availableEnemies.length > 0) {
+      const randIndex = Math.floor(Math.random() * availableEnemies.length);
+      const enemyIndex = availableEnemies.splice(randIndex, 1)[0];
+      enemies[enemyIndex].isShooter = true;
+      numShooters--;
+    }
+  }
 
   function shoot() {
     if (gameOver) return;
@@ -614,73 +652,95 @@ const sightWords = [
     }
     bullets = bullets.filter(b => b.y + b.height / 2 > 0);
 
-    // --- Enemy formation movement (Space Invaders style) ---
-    enemyMoveTimer -= dt; // Count down the timer
+    // --- Enemy Logic ---
+    
+    // Check if there is a boss active
+    const boss = enemies.find(e => e.isBoss);
+
+    // 1. Standard Grid Movement (ONLY if no boss)
     let formationMovedDown = false;
     let formationMovedSide = false;
 
-    if (enemyMoveTimer <= 0) {
-      enemyMoveTimer = currentEnemyMoveInterval; // Reset timer
-      formationMovedSide = true; // Flag that we are trying to move sideways
+    if (!boss) {
+      enemyMoveTimer -= dt; // Count down the timer
+      if (enemyMoveTimer <= 0) {
+        enemyMoveTimer = currentEnemyMoveInterval; // Reset timer
+        formationMovedSide = true; // Flag that we are trying to move sideways
 
-      // Check for wall hits *before* moving
-      let hitWall = false;
-      for (const e of enemies) {
-        const nextX = e.x + (enemyMoveStepX * enemyDirection);
-        const halfW = e.width / 2;
-        if (nextX > width - halfW - 10 || nextX < halfW + 10) {
-          hitWall = true;
-          break;
+        // Check for wall hits *before* moving
+        let hitWall = false;
+        for (const e of enemies) {
+          // Drones and Bosses don't trigger formation logic
+          if (e.isDrone) continue; 
+          
+          const nextX = e.x + (enemyMoveStepX * enemyDirection);
+          const halfW = e.width / 2;
+          if (nextX > width - halfW - 10 || nextX < halfW + 10) {
+            hitWall = true;
+            break;
+          }
         }
-      }
 
-      if (hitWall) {
-        formationMovedDown = true; // Move down instead of sideways
-        formationMovedSide = false;
-        enemyDirection *= -1; // Change direction
+        if (hitWall) {
+          formationMovedDown = true; // Move down instead of sideways
+          formationMovedSide = false;
+          enemyDirection *= -1; // Change direction
+        }
       }
     }
 
-    // enemies
+    // 2. Update Individual Enemies
     for (const e of enemies) {
-      // Apply movement based on flags
-      if (formationMovedDown) {
-        e.y += enemyMoveStepY;
+      
+      // --- CASE A: BOSS MOVEMENT ---
+      if (e.isBoss) {
+        // Gentle Hover effect
+        e.hoverOffset = (e.hoverOffset || 0) + dt * 2;
+        e.x = (width / 2) + Math.sin(e.hoverOffset) * 50; // Hover left/right
+        e.y = 120 + Math.cos(e.hoverOffset * 1.5) * 15;   // Hover up/down
+      } 
+      // --- CASE B: DRONE MOVEMENT (Dive bomb) ---
+      else if (e.isDrone) {
+        // Move down fast, and slightly towards player X
+        e.y += e.speed * dt;
+        if (e.x < player.x) e.x += 20 * dt;
+        if (e.x > player.x) e.x -= 20 * dt;
       }
-      if (formationMovedSide) {
-        e.x += (enemyMoveStepX * enemyDirection);
+      // --- CASE C: STANDARD GRID MOVEMENT ---
+      else {
+        if (formationMovedDown) e.y += enemyMoveStepY;
+        if (formationMovedSide) e.x += (enemyMoveStepX * enemyDirection);
       }
 
 
-      // Enemy shooting logic (NEW: only designated shooters shoot)
-      if (e.isShooter) {
+      // Enemy shooting logic (standard shooters)
+      if (e.isShooter && !e.isBoss) {
         e.shootTimer -= dt;
         if (e.shootTimer <= 0) {
           e.shootTimer = 0.8 + Math.random() * 1.5;
-
           // Calculate Aim Vector
           const dx = player.x - e.x;
           const dy = player.y - e.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const bulletSpeed = 140 + level * 15; // Speed scalar
+          const bulletSpeed = 140 + level * 15; 
 
           enemyBullets.push({
             x: e.x,
             y: e.y + e.height / 2,
-            width: 8, // Made square so it looks natural moving diagonally
+            width: 8, 
             height: 8,
-            vx: (dx / dist) * bulletSpeed, // Velocity X component
-            vy: (dy / dist) * bulletSpeed  // Velocity Y component
+            vx: (dx / dist) * bulletSpeed, 
+            vy: (dy / dist) * bulletSpeed 
           });
           playSound('enemyShoot');
         }
       }
 
       // Game over check (when enemy reaches player)
-      if (e.y + e.height / 2 > player.y - player.height / 2) {
-        setGameOver("An enemy slipped through!");
-      }
-    }
+      if (e.y + e.height / 2 > player.y - player.height / 2) {
+        setGameOver("An enemy slipped through!");
+      }
+    }
 
     // enemy bullets
     for (const b of enemyBullets) {
@@ -695,38 +755,75 @@ const sightWords = [
     );
 
     // collisions: player bullets with enemies
-    // Only check collisions if not game over AND not waiting for the next wave
     if (!gameOver && !pendingSpawn) {
       outerLoop:
-      for (let i = 0; i < bullets.length; i++) {
+      for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
-        for (let j = 0; j < enemies.length; j++) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
           const e = enemies[j];
+          
           if (rectOverlap(b, e)) {
+            // Remove bullet immediately
+            bullets.splice(i, 1);
+
             if (e.word === currentTargetWord) {
               // --- CORRECT HIT ---
-              score++;
-              hitsThisLevel++;
+              createExplosion(b.x, b.y); // Explosion at impact point
               playSound('hitCorrect');
-              createExplosion(e.x, e.y); // Create explosion
-              pendingSpawn = true; // Set flag to spawn next wave
-
-              // Clear all remaining enemies and bullets manually
-              // The pendingSpawn logic will handle the respawn.
-              enemies = [];
-              bullets = [];
+              
+              if (e.isBoss) {
+                e.hp--;
+                
+                // BOSS RETALIATION!
+                if (e.hp > 0) {
+                  // 50/50 chance: Spawn Drones OR Shoot Spread
+                  if (Math.random() > 0.5) {
+                     spawnDrone();
+                     spawnDrone();
+                  } else {
+                     // Spread Shot
+                     [-1, 0, 1].forEach(dir => {
+                       enemyBullets.push({
+                         x: e.x, y: e.y + e.height/2,
+                         width: 10, height: 10,
+                         vx: dir * 150, vy: 300
+                       });
+                     });
+                     playSound('enemyShoot');
+                  }
+                } else {
+                   // Boss Destroyed
+                   score += 50; // Bonus score
+                   hitsThisLevel = hitsPerLevel; // Force level completion
+                   pendingSpawn = true; 
+                   enemies = []; // Clear boss and drones
+                }
+              } 
+              else {
+                // Normal Enemy Hit
+                score++;
+                hitsThisLevel++;
+                
+                // Logic: If it's a drone, just remove it. 
+                // If it's a standard grid enemy, remove it and check win condition.
+                if (e.isDrone) {
+                   enemies.splice(j, 1);
+                } else {
+                   // For standard enemies, clearing the board usually means win,
+                   // but using existing logic:
+                   pendingSpawn = true; 
+                   enemies = []; 
+                }
+              }
 
             } else {
               // --- WRONG HIT ---
-              createExplosion(e.x, e.y); // Create explosion
+              createExplosion(b.x, b.y);
               setGameOver("Wrong word!");
-
-              // Remove just the specific enemy and bullet
-              enemies.splice(j, 1);
-              bullets.splice(i, 1);
             }
-            // Stop all collision checks for this frame
-            break outerLoop;
+            
+            // Bullet used, break inner loop
+            break; 
           }
         }
       }
@@ -802,14 +899,54 @@ const sightWords = [
 
     // enemies
     for (const e of enemies) {
-      ctx.fillStyle = "#FF0000"; // Classic arcade red
-      ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
-      ctx.fillStyle = "#ffffff";
-      // Use the 8-bit font
-      ctx.font = "14px 'Press Start 2P'"; // Increased font size
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(e.word, e.x, e.y + 1); // +1 for better pixel alignment
+      if (e.isBoss) {
+         // --- DRAW BOSS ---
+         // 1. Dome
+         ctx.fillStyle = "#00FFFF";
+         ctx.fillRect(e.x - e.width/4, e.y - e.height/2 - 15, e.width/2, 30);
+         // 2. Main Saucer
+         ctx.fillStyle = "#9900FF"; // Purple Boss
+         ctx.fillRect(e.x - e.width/2, e.y - e.height/2, e.width, e.height);
+         // 3. Lights
+         ctx.fillStyle = Math.random() > 0.5 ? "#FFFF00" : "#FF0000";
+         ctx.fillRect(e.x - e.width/2 + 10, e.y, 10, 10);
+         ctx.fillRect(e.x + e.width/2 - 20, e.y, 10, 10);
+         
+         // 4. HP Bar (Above boss)
+         const hpPct = e.hp / e.maxHp;
+         ctx.fillStyle = "red";
+         ctx.fillRect(e.x - e.width/2, e.y - e.height/2 - 25, e.width, 5);
+         ctx.fillStyle = "#00FF00";
+         ctx.fillRect(e.x - e.width/2, e.y - e.height/2 - 25, e.width * hpPct, 5);
+
+         // Text
+         ctx.fillStyle = "#ffffff";
+         ctx.font = "24px 'Press Start 2P'"; // Giant text
+         ctx.textAlign = "center";
+         ctx.textBaseline = "middle";
+         ctx.fillText(e.word, e.x, e.y);
+      } 
+      else if (e.isDrone) {
+         // --- DRAW DRONE ---
+         ctx.fillStyle = "#FF9900"; // Orange
+         ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
+         // Drone Text
+         ctx.fillStyle = "#000"; // Black text on orange
+         ctx.font = "10px 'Press Start 2P'";
+         ctx.textAlign = "center";
+         ctx.textBaseline = "middle";
+         ctx.fillText(e.word, e.x, e.y);
+      } 
+      else {
+         // --- STANDARD ENEMY ---
+         ctx.fillStyle = "#FF0000"; // Classic arcade red
+         ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
+         ctx.fillStyle = "#ffffff";
+         ctx.font = "14px 'Press Start 2P'";
+         ctx.textAlign = "center";
+         ctx.textBaseline = "middle";
+         ctx.fillText(e.word, e.x, e.y + 1);
+      }
     }
 
     // enemy bullets

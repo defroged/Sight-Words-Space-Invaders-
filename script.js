@@ -830,16 +830,24 @@ const sightWords = [
         e.x = (width / 2) + Math.sin(e.hoverOffset) * 50; // Hover left/right
         e.y = 120 + Math.cos(e.hoverOffset * 1.5) * 15;   // Hover up/down
 
-        // Boss Attack Logic (Spawn Homing Spaceship)
+// Boss Attack Logic (Spawn Homing Spaceship)
         e.attackTimer -= dt;
         if (e.attackTimer <= 0) {
-          e.attackTimer = 3.5; // Fire every 3.5 seconds
+          // Calculate how many bosses we have faced (Level 10 = 1, Level 20 = 2, etc.)
+          const bossLevel = level / 10;
+
+          // Cooldown: Starts at 3.5s, gets 0.2s faster per boss level (capped at 1.0s minimum)
+          e.attackTimer = Math.max(1.0, 3.5 - (bossLevel * 0.2));
+
+          // Speed: Starts at 100, gets 30 faster per boss level
+          const missileSpeed = 50 + (bossLevel * 30);
+
           enemyBullets.push({
             x: e.x,
             y: e.y + e.height / 2,
             width: 20, // Larger than normal bullets
             height: 20,
-            speed: 100, // Slow speed
+            speed: missileSpeed, // Dynamic speed
             isHoming: true // Special flag for movement
           });
           playSound('enemyShoot');
@@ -868,7 +876,7 @@ const sightWords = [
           const dx = player.x - e.x;
           const dy = player.y - e.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const bulletSpeed = 110 + level * 10; 
+          const bulletSpeed = 50 + level * 10; 
 
           enemyBullets.push({
             x: e.x,

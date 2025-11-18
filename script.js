@@ -784,21 +784,9 @@ const sightWords = [
                 
                 // BOSS RETALIATION!
                 if (e.hp > 0) {
-                  // 50/50 chance: Spawn Drones OR Shoot Spread
-                  if (Math.random() > 0.5) {
-                     spawnDrone();
-                     spawnDrone();
-                  } else {
-                     // Spread Shot
-                     [-1, 0, 1].forEach(dir => {
-                       enemyBullets.push({
-                         x: e.x, y: e.y + e.height/2,
-                         width: 10, height: 10,
-                         vx: dir * 150, vy: 300
-                       });
-                     });
-                     playSound('enemyShoot');
-                  }
+                  // Always Spawn Drones (No bullets)
+                  spawnDrone();
+                  spawnDrone();
                 } else {
                    // Boss Destroyed
                    score += 50; // Bonus score
@@ -935,16 +923,24 @@ const sightWords = [
          ctx.fillText(e.word, e.x, e.y);
       } 
       else if (e.isDrone) {
-         // --- DRAW DRONE ---
-         ctx.fillStyle = "#FF9900"; // Orange
-         ctx.fillRect(e.x - e.width / 2, e.y - e.height / 2, e.width, e.height);
-         // Drone Text
-         ctx.fillStyle = "#000"; // Black text on orange
-         ctx.font = "10px 'Press Start 2P'";
-         ctx.textAlign = "center";
-         ctx.textBaseline = "middle";
-         ctx.fillText(e.word, e.x, e.y);
-      } 
+          // --- DRAW DRONE ---
+          // Spaceship look, no word rendered
+          const dx = e.x;
+          const dy = e.y;
+          const dw = e.width;
+          const dh = e.height;
+
+          ctx.fillStyle = "#FF9900"; // Orange body
+
+          // Main Body (Wide part)
+          ctx.fillRect(dx - dw / 2, dy - dh / 4, dw, dh / 2);
+          // Cockpit/Dome (Top part)
+          ctx.fillRect(dx - dw / 4, dy - dh / 2, dw / 2, dh / 4);
+          // Engines/Wings details (Bottom details)
+          ctx.fillStyle = "#CC6600"; // Darker orange
+          ctx.fillRect(dx - dw / 2, dy + dh / 4, 10, 6);
+          ctx.fillRect(dx + dw / 2 - 10, dy + dh / 4, 10, 6);
+      }
       else {
          // --- STANDARD ENEMY ---
          ctx.fillStyle = "#FF0000"; // Classic arcade red

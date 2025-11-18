@@ -9,6 +9,26 @@
   let isBatchAudioLoading = false; // NEW: Tracks if TTS audio is loading
   let currentMusicSource = null; // Tracks the currently playing background music
 
+  // --- Intro Music ---
+  const introAudio = new Audio('intro.mp3');
+  introAudio.loop = true;
+  introAudio.volume = 0.5; // Set volume (0.0 to 1.0)
+
+  // Attempt to autoplay immediately
+  introAudio.play().catch(() => {
+    // If browser blocks autoplay, wait for the first user interaction
+    const playIntroOnInteraction = () => {
+      introAudio.play();
+      // Remove listeners once played
+      document.removeEventListener('click', playIntroOnInteraction);
+      document.removeEventListener('touchstart', playIntroOnInteraction);
+      document.removeEventListener('keydown', playIntroOnInteraction);
+    };
+    document.addEventListener('click', playIntroOnInteraction);
+    document.addEventListener('touchstart', playIntroOnInteraction);
+    document.addEventListener('keydown', playIntroOnInteraction);
+  });
+
   // Force pixelated rendering
   ctx.imageSmoothingEnabled = false;
 
@@ -1437,6 +1457,10 @@ const sightWords = [
       loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);
     // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
+
+    // --- Stop Intro Music ---
+    introAudio.pause();
+    introAudio.currentTime = 0;
 
     // 3. Hide loading screen
     loadingScreen.style.display = 'none';

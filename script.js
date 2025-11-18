@@ -37,7 +37,12 @@
   const startScreen = document.getElementById('start-screen');
   const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
-  const restartBtn = document.getElementById('restart-btn'); // NEW
+  
+  // --- NEW: Game Over Elements ---
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const gameOverReasonText = document.getElementById('game-over-reason');
+  const gameOverScoreText = document.getElementById('game-over-score');
+  const restartBtn = document.getElementById('restart-btn'); 
 
   let width = window.innerWidth;
   let height = window.innerHeight;
@@ -625,8 +630,10 @@ const sightWords = [
     gameOver = true;
     gameOverReason = reason || "Game Over";
 
-    // --- NEW: Show Restart Button ---
-    restartBtn.style.display = 'block';
+    // --- NEW: Show Game Over Screen (HTML Overlay) ---
+    gameOverReasonText.innerText = gameOverReason;
+    gameOverScoreText.innerText = "SCORE: " + score;
+    gameOverScreen.style.display = 'flex';
 
     // --- NEW: Stop background/boss music on Game Over ---
     if (currentMusicSource) {
@@ -657,8 +664,8 @@ const sightWords = [
       currentMusicSource = null;
     }
 
-    // --- NEW: Hide Restart Button ---
-    restartBtn.style.display = 'none';
+    // --- NEW: Hide Game Over Screen ---
+    gameOverScreen.style.display = 'none';
 
     level = 1;
     score = 0;
@@ -1325,25 +1332,7 @@ const sightWords = [
         ctx.fillText("READY", width / 2, height / 2 - 50);
     }
 
-    if (gameOver) {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      ctx.font = "20px 'Press Start 2P'";
-      ctx.fillText("Game Over", width / 2, height / 2 - 50);
-
-      ctx.font = "10px 'Press Start 2P'";
-      ctx.fillText(gameOverReason, width / 2, height / 2 - 20);
-
-      // --- Show Final Score ---
-      ctx.fillStyle = "#FFFF00"; // Yellow text for score
-      ctx.font = "12px 'Press Start 2P'";
-      ctx.fillText("Score: " + score, width / 2, height / 2 + 10);
-    }
+    // Note: gameOver text is now handled by HTML overlay in setGameOver()
 
     ctx.restore(); // NEW: Restore context to undo the shake translation
   }

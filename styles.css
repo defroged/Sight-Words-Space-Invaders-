@@ -194,15 +194,45 @@
   background: #99ff99;
 }
 
-/* --- Restart Button Styles --- */
-#restart-btn {
+/* --- Game Over Screen Styles --- */
+#game-over-screen {
   display: none; /* Hidden by default */
   position: absolute;
-  top: 60%; /* Positioned slightly below the center */
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 101; /* Ensure it sits on top of the canvas and scanlines */
-  
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--app-height);
+  background: rgba(0, 0, 0, 0.85); /* Dark semi-transparent background */
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 101; /* Above everything */
+  color: white;
+  text-align: center;
+  font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+#game-over-screen h1 {
+  color: #FF0000;
+  font-size: 30px;
+  margin-bottom: 20px;
+}
+
+#game-over-reason {
+  font-size: 12px;
+  margin-bottom: 20px;
+  color: #FFF;
+}
+
+#game-over-score {
+  font-size: 18px;
+  color: #FFFF00; /* Yellow */
+  margin-bottom: 40px; /* Space between score and button */
+}
+
+/* --- Restart Button Styles --- */
+#restart-btn {
+  /* No absolute positioning needed anymore, flexbox handles it */
   font-family: "Press Start 2P", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 1.2rem;
   color: #000;

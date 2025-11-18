@@ -804,6 +804,18 @@ const sightWords = [
             e.attackTimer -= dt;
             if (e.attackTimer <= 0) {
               e.attackTimer = 3.5; // Fire every 3.5 seconds
+              enemyBullets.push({
+                x: e.x,
+                y: e.y + e.height / 2,
+                width: 20, // Larger than normal bullets
+                height: 20,
+                speed: 120, // Slow speed
+                isHoming: true // Special flag for movement
+              });
+              playSound('enemyShoot');
+            }
+        }
+      }
           enemyBullets.push({
             x: e.x,
             y: e.y + e.height / 2,
@@ -815,7 +827,6 @@ const sightWords = [
           playSound('enemyShoot');
         }
       }
-	  }
       // --- CASE B: DRONE MOVEMENT (Dive bomb) ---
       else if (e.isDrone) {
         // Move down fast, and slightly towards player X

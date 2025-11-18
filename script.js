@@ -840,6 +840,31 @@ const sightWords = [
     // 2. Update Individual Enemies
     for (const e of enemies) {
       
+      // --- NEW: Boss Dying Sequence ---
+      if (e.isBoss && e.isDying) {
+        e.dyingTimer -= dt;
+        screenShake = 10; // Violent shake continuously
+
+        // Create random explosions all over the boss's body
+        // High frequency: roughly every other frame
+        if (Math.random() < 0.5) { 
+            const ex = e.x + (Math.random() * e.width - e.width / 2);
+            const ey = e.y + (Math.random() * e.height - e.height / 2);
+            createExplosion(ex, ey);
+        }
+
+        // When the 8-second timer ends, cleanup the boss
+        if (e.dyingTimer <= 0) {
+             score += 300; // Increased Bonus score
+             hitsThisLevel = hitsPerLevel; // Max out hits to satisfy level-up condition
+             pendingSpawn = true; // Trigger the level completion logic in the main loop
+             enemies = []; // Remove the boss immediately
+        }
+        
+        // Skip movement and shooting logic while dying
+        continue; 
+      }
+
       // --- CASE A: BOSS MOVEMENT ---
       if (e.isBoss) {
         // Gentle Hover effect
@@ -967,17 +992,22 @@ const sightWords = [
                 e.hp--;
 
                 // Boss Destroyed Check
-                if (e.hp <= 0) {
-                   score += 300; // Increased Bonus score
-                   hitsThisLevel = hitsPerLevel; // Max out hits to satisfy level-up condition
-                   pendingSpawn = true; // Trigger the level completion logic in the main loop
-                   enemies = []; // Remove the boss immediately
+                if (e.hp <= 0 && !e.isDying) {
+                   // --- START DYING SEQUENCE ---
+                   e.isDying = true;
+                   e.dyingTimer = 8.0; // 8 seconds (matches sound file)
+                   
+                   // Play the big explosion sound
+                   playSound('bossExplosion');
 
-                   // Stop Boss Music
+                   // Stop Boss Music immediately
                    if (currentMusicSource) {
                        try { currentMusicSource.stop(); } catch(e) {}
                        currentMusicSource = null;
                    }
+                   
+                   // We DO NOT remove the enemy or set pendingSpawn yet.
+                   // That happens in the update() loop when dyingTimer expires.
                 }
                 // We no longer spawn drones here. The Boss is the only word.
               }
@@ -1115,18 +1145,29 @@ const sightWords = [
     for (const e of enemies) {
       if (e.isBoss) {
          // --- DRAW BOSS ---
+         
+         // Flashing effect: If dying, randomly swap colors to white
+         const isFlashing = e.isDying && Math.random() > 0.5;
+
          // 1. Dome
-         ctx.fillStyle = "#00FFFF";
+         ctx.fillStyle = isFlashing ? "#FFFFFF" : "#00FFFF";
          ctx.fillRect(e.x - e.width/4, e.y - e.height/2 - 15, e.width/2, 30);
          // 2. Main Saucer
-         ctx.fillStyle = "#9900FF"; // Purple Boss
+         ctx.fillStyle = isFlashing ? "#FFFFFF" : "#9900FF"; // Purple Boss
          ctx.fillRect(e.x - e.width/2, e.y - e.height/2, e.width, e.height);
          // 3. Lights
          ctx.fillStyle = Math.random() > 0.5 ? "#FFFF00" : "#FF0000";
          ctx.fillRect(e.x - e.width/2 + 10, e.y, 10, 10);
          ctx.fillRect(e.x + e.width/2 - 20, e.y, 10, 10);
          
-         // 4. HP Bar (Above boss)
+         // 4. HP Bar (Above boss) - Only draw if NOT dying
+         if (!e.isDying) {
+             const hpPct = e.hp / e.maxHp;
+             ctx.fillStyle = "red";
+             ctx.fillRect(e.x - e.width/2, e.y - e.height/2 - 25, e.width, 5);
+             ctx.fillStyle = "#00FF00";
+             ctx.fillRect(e.x - e.width/2, e.y - e.height/2 - 25, e.width * hpPct, 5);
+         }
          const hpPct = e.hp / e.maxHp;
          ctx.fillStyle = "red";
          ctx.fillRect(e.x - e.width/2, e.y - e.height/2 - 25, e.width, 5);
@@ -1498,6 +1539,7 @@ const sightWords = [
     await Promise.all([
       loadWordAudio(sightWords),
       loadStaticAudio('/level-up.mp3', 'levelUp', false), // NEW: Load level up MP3
+      loadStaticAudio('/boss-explosion.mp3', 'bossExplosion', false), // NEW: Boss explosion SFX
       // Pass true as the 3rd argument to enable looping
       loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);

@@ -7,26 +7,28 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'Server configuration error: Missing API key' });
+    return res.status(500).json({ error: 'Missing API key' });
   }
 
   const { words } = req.body;
   if (!Array.isArray(words) || words.length === 0) {
-    return res.status(400).json({ error: 'Invalid request: "words" array is required.' });
+    return res.status(400).json({ error: 'Invalid request' });
   }
 
   const VOICE_ID = 'RILOU7YmBhvwJGDGjNmP';
   const ELEVENLABS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
-  const MODEL_ID = 'eleven_multilingual_v2';
-  const audioMap = {}; 
+  const MODEL_ID = 'eleven_multilingual_v2'; // You can stick with this, or try 'eleven_turbo_v2_5'
+  const audioMap = {};
 
   try {
-    for (const word of words) {
-      // 1. Create the payload string first
-      const textToSpeak = `- ${word} -`;
+    for (const rawWord of words) {
+      // --- FIX 1: Capitalize First Letter + Add Period ---
+      // This forces the AI to use "Citation Form" (falling intonation).
+      // "are" -> "Are."
+      const cleanWord = rawWord.trim();
+      const textToSpeak = cleanWord.charAt(0).toUpperCase() + cleanWord.slice(1) + ".";
 
-      // 2. Log the ACTUAL string being sent
-      console.log(`Processing word: "${word}" -> Sending to TTS: "${textToSpeak}"`);
+      console.log(`Processing: "${rawWord}" -> TTS Payload: "${textToSpeak}"`);
       
       const response = await fetch(ELEVENLABS_URL, {
         method: 'POST',
@@ -36,39 +38,42 @@ export default async function handler(req, res) {
           'Accept': 'audio/mpeg'
         },
         body: JSON.stringify({
-          text: textToSpeak, // 3. Use the variable here
+          text: textToSpeak, 
           model_id: MODEL_ID,
           voice_settings: {
-            stability: 0.4,
-            style: 0,
-            similarity_boost: 0.40,
+            // --- FIX 2: High Stability for Clarity ---
+            // 0.80 makes the voice consistent and clear (less "acting").
+            stability: 0.80, 
+            
+            // Keep style low to avoid weird emotional inflections
+            style: 0.0, 
+            
+            // Boost clarity
+            similarity_boost: 0.75, 
             use_speaker_boost: true,
-            speed: 1
+            speed: 0.9 // --- FIX 3: Slow it down slightly (0.9 is 90% speed)
            },
         }),
       });
 
       if (!response.ok) {
-        console.error(`Failed to fetch audio for "${word}": ${response.statusText}`);
+        console.error(`Failed: ${response.statusText}`);
         if (response.status === 429) {
-          console.warn('Rate limit hit. Pausing for 1 second...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
         continue; 
       }
 
       const audioBuffer = await response.arrayBuffer();
-      const base64Audio = Buffer.from(audioBuffer).toString('base64');
-       audioMap[word] = base64Audio;
+      audioMap[rawWord] = Buffer.from(audioBuffer).toString('base64');
       
-      await new Promise(resolve => setTimeout(resolve, 200)); 
+      await new Promise(resolve => setTimeout(resolve, 250)); 
     }
 
-    console.log('All audio processing complete.');
     res.status(200).json(audioMap);
 
  } catch (error) {
-    console.error('Error fetching from ElevenLabs:', error);
+    console.error('Error:', error);
     res.status(500).json({ error: 'Failed to generate audio' });
   }
 }

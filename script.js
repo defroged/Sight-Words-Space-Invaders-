@@ -653,16 +653,24 @@ const sightWords = [
 
 
       // Enemy shooting logic (NEW: only designated shooters shoot)
-      if (e.isShooter) {
-        e.shootTimer -= dt;
-        if (e.shootTimer <= 0) {
+      if (e.isShooter) {
+        e.shootTimer -= dt;
+        if (e.shootTimer <= 0) {
           e.shootTimer = 0.8 + Math.random() * 1.5;
+
+          // Calculate Aim Vector
+          const dx = player.x - e.x;
+          const dy = player.y - e.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const bulletSpeed = 140 + level * 15; // Speed scalar
+
           enemyBullets.push({
             x: e.x,
             y: e.y + e.height / 2,
-            width: 6,
-            height: 18,
-            speed: 120 + level * 15
+            width: 8, // Made square so it looks natural moving diagonally
+            height: 8,
+            vx: (dx / dist) * bulletSpeed, // Velocity X component
+            vy: (dy / dist) * bulletSpeed  // Velocity Y component
           });
           playSound('enemyShoot');
         }
@@ -676,9 +684,15 @@ const sightWords = [
 
     // enemy bullets
     for (const b of enemyBullets) {
-      b.y += b.speed * dt;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
     }
-    enemyBullets = enemyBullets.filter(b => b.y - b.height / 2 < height + 30);
+    // Remove bullets that go off the bottom, left, or right of the screen
+    enemyBullets = enemyBullets.filter(b => 
+      b.y - b.height / 2 < height + 30 && 
+      b.x > -50 && 
+      b.x < width + 50
+    );
 
     // collisions: player bullets with enemies
     // Only check collisions if not game over AND not waiting for the next wave

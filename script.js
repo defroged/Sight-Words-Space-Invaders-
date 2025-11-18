@@ -58,11 +58,11 @@ let bullets = [];
 
   // --- NEW: Level Up State ---
   let isLevelingUp = false;
-  let levelUpTimer = 0;
-  const levelUpDuration = 3.0; // 3 seconds
+  let levelUpTimer = 0;
+  const levelUpDuration = 3.0; // 3 seconds
 
-  let lastShotTime = 0;
-  const shotCooldown = 200; // ms
+  let lastShotTime = 0;
+  const shotCooldown = 100; // ms (Reduced to make shooting feel snappy and reactive)
 
   // --- New state variables for button controls ---
   let moveLeft = false;
@@ -1175,7 +1175,15 @@ const sightWords = [
 
     // --- Shoot/Restart Listener ---
     const onShootPress = (e) => { // No longer async
-      e.preventDefault();
+      // e.preventDefault() is crucial to prevent ghost mouse events on touch
+      if (e.cancelable) e.preventDefault();
+
+      // FIX: Resume AudioContext immediately on interaction.
+      // This fixes the "lag" sensation caused by the browser waking up the audio engine late.
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+
       if (gameOver) {
         // restartGame is no longer async
         restartGame(); // No longer awaited

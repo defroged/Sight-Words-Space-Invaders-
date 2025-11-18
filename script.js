@@ -427,7 +427,8 @@ const sightWords = [
       isBoss: true,
       hp: 10, // 10 Hits to kill
       maxHp: 10,
-      hoverOffset: 0 // For visual floating effect
+      hoverOffset: 0, // For visual floating effect
+      attackTimer: 2.0 // Seconds until first attack
     });
   }
 
@@ -698,7 +699,22 @@ const sightWords = [
         e.hoverOffset = (e.hoverOffset || 0) + dt * 2;
         e.x = (width / 2) + Math.sin(e.hoverOffset) * 50; // Hover left/right
         e.y = 120 + Math.cos(e.hoverOffset * 1.5) * 15;   // Hover up/down
-      } 
+
+        // Boss Attack Logic (Spawn Homing Spaceship)
+        e.attackTimer -= dt;
+        if (e.attackTimer <= 0) {
+          e.attackTimer = 3.5; // Fire every 3.5 seconds
+          enemyBullets.push({
+            x: e.x,
+            y: e.y + e.height / 2,
+            width: 20, // Larger than normal bullets
+            height: 20,
+            speed: 120, // Slow speed
+            isHoming: true // Special flag for movement
+          });
+          playSound('enemyShoot');
+        }
+      }
       // --- CASE B: DRONE MOVEMENT (Dive bomb) ---
       else if (e.isDrone) {
         // Move down fast, and slightly towards player X
@@ -752,8 +768,22 @@ const sightWords = [
 
     // enemy bullets
     for (const b of enemyBullets) {
-      b.x += b.vx * dt;
-      b.y += b.vy * dt;
+      if (b.isHoming) {
+        // Calculate vector towards player
+        const dx = player.x - b.x;
+        const dy = player.y - b.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Move towards player if not already there
+        if (dist > 10) {
+          b.x += (dx / dist) * b.speed * dt;
+          b.y += (dy / dist) * b.speed * dt;
+        }
+      } else {
+        // Standard straight-line bullet
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+      }
     }
     // Remove bullets that go off the bottom, left, or right of the screen
     enemyBullets = enemyBullets.filter(b => 
@@ -950,9 +980,22 @@ const sightWords = [
     }
 
     // enemy bullets
-    ctx.fillStyle = "#ffdd33";
     for (const b of enemyBullets) {
-      ctx.fillRect(b.x - b.width / 2, b.y - b.height / 2, b.width, b.height);
+      if (b.isHoming) {
+        // Draw Homing Spaceship (Diamond shape)
+        ctx.fillStyle = "#FF4400"; // Red-Orange
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y - b.height/2); // Top
+        ctx.lineTo(b.x + b.width/2, b.y); // Right
+        ctx.lineTo(b.x, b.y + b.height/2); // Bottom
+        ctx.lineTo(b.x - b.width/2, b.y); // Left
+        ctx.closePath();
+        ctx.fill();
+      } else {
+        // Standard Bullet
+        ctx.fillStyle = "#ffdd33";
+        ctx.fillRect(b.x - b.width / 2, b.y - b.height / 2, b.width, b.height);
+      }
     }
 
     // --- DRAW EXPLOSIONS ---
@@ -1065,7 +1108,7 @@ const sightWords = [
   function setupControls() {
     // --- Cheat Code Variables ---
     let inputHistory = [];
-    const cheatSequence = ['left', 'right', 'left', 'right'];
+    const cheatSequence = ['left', 'left', 'right', 'right', 'left', 'left', 'right', 'right'];
 
     // --- Movement Listeners ---
     const startMove = (e, direction) => {

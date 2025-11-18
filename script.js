@@ -425,8 +425,8 @@ const sightWords = [
       height: 90,
       word: currentTargetWord,
       isBoss: true,
-      hp: 10, // 10 Hits to kill
-      maxHp: 10,
+      hp: 15 + (level * 2),
+      maxHp: 15 + (level * 2),
       hoverOffset: 0, // For visual floating effect
       attackTimer: 2.0 // Seconds until first attack
     });
@@ -1107,7 +1107,7 @@ const sightWords = [
   function setupControls() {
     // --- Cheat Code Variables ---
     let inputHistory = [];
-    const cheatSequence = ['left', 'left', 'left', 'left', 'left', 'left', 'left', 'left', 'left', 'left'];
+    const cheatSequence = ['left', 'left', 'left', 'left', 'left', 'right', 'right', 'right', 'right', 'right', 'left'];
 
     // --- Movement Listeners ---
     const startMove = (e, direction) => {

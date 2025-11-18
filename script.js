@@ -20,6 +20,9 @@
   let width = window.innerWidth;
   let height = window.innerHeight;
 
+  // --- Visual Assets ---
+  let stars = []; // Store star positions and speeds
+
   const player = {
     x: width / 2,
     y: height - 30,
@@ -84,6 +87,19 @@ const sightWords = [
   "come"
 ];
 
+  function initStars() {
+    stars = [];
+    const starCount = 100;
+    for (let i = 0; i < starCount; i++) {
+      stars.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.random() * 2 + 1, // Size between 1 and 3
+        speed: Math.random() * 50 + 20 // Speed between 20 and 70
+      });
+    }
+  }
+
   function resize() {
     // Keep CSS layout (var(--app-height)) in sync with the real viewport height.
     document.documentElement.style.setProperty(
@@ -97,6 +113,9 @@ const sightWords = [
     canvas.height = height;
     player.y = height - 30;
     clampPlayerX();
+    
+    // Re-initialize stars on resize to cover new area
+    initStars();
   }
 
 
@@ -533,9 +552,12 @@ const sightWords = [
   }
 
   function update(dt) {
-    if (gameOver) return;
+    // Always update stars for visual effect, even if game over (optional)
+    updateStars(dt);
 
-    // --- NEW: Handle Level Up state ---
+    if (gameOver) return;
+
+    // --- NEW: Handle Level Up state ---
     // If we are leveling up, pause all game logic
     if (isLevelingUp) {
       levelUpTimer -= dt;
@@ -707,18 +729,27 @@ const sightWords = [
     }
   }
 
+  function updateStars(dt) {
+    for (const star of stars) {
+      star.y += star.speed * dt;
+      // If star goes off bottom, wrap to top at random X
+      if (star.y > height) {
+        star.y = 0;
+        star.x = Math.random() * width;
+      }
+    }
+  }
+
   function drawBackground() {
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    // Static starfield (no more smooth animation)
-    ctx.fillStyle = "#333"; // A bit brighter
-    for (let i = 0; i < 40; i++) {
-      const x = (i * 53 * 3) % width; // Change positions
-      const y = (i * 137) % height;
-      ctx.fillRect(x, y, 2, 2); // Blocky 2x2 stars
+    // Draw moving stars
+    ctx.fillStyle = "#888"; 
+    for (const star of stars) {
+      ctx.fillRect(star.x, star.y, star.size, star.size);
     }
-}
+  }
 
   
 
@@ -727,21 +758,27 @@ const sightWords = [
     ctx.imageSmoothingEnabled = false;
     drawBackground();
 
-    // player ship (now a blocky rectangle)
-    ctx.fillStyle = "#00FF00"; // Classic arcade green
-    ctx.fillRect(
-      player.x - player.width / 2,
-      player.y - player.height / 2,
-      player.width,
-      player.height
-    );
-    // Add a "cannon"
-    ctx.fillRect(
-      player.x - 4,
-      player.y - player.height / 2 - 8,
-      8,
-      8
-    );
+    // --- DRAW PLAYER SHIP (Retro Style) ---
+    const px = player.x;
+    const py = player.y;
+    const pw = player.width;
+    const ph = player.height;
+
+    ctx.fillStyle = "#00FF00"; // Main Green
+
+    // 1. Main Body (Bottom wide part)
+    ctx.fillRect(px - pw / 2, py - ph / 4, pw, ph / 2);
+
+    // 2. Cockpit/Fuselage (Middle narrower part)
+    ctx.fillRect(px - pw / 4, py - ph / 2, pw / 2, ph);
+
+    // 3. Nose/Cannon (Top tip)
+    ctx.fillRect(px - 4, py - ph / 2 - 10, 8, 10);
+
+    // 4. Engine Thrusters (Visual detail on bottom)
+    ctx.fillStyle = "#004400"; // Darker green for detail
+    ctx.fillRect(px - pw / 2 + 5, py + ph / 4, 10, 6);
+    ctx.fillRect(px + pw / 2 - 15, py + ph / 4, 10, 6);
 
     // player bullets
     ctx.fillStyle = "#ffffff";
@@ -1052,4 +1089,5 @@ const sightWords = [
 
   // We no longer start the game here, we wait for the play button.
 })();
+
 

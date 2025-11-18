@@ -1091,14 +1091,20 @@ const sightWords = [
       ctx.textBaseline = "middle";
 
       ctx.font = "20px 'Press Start 2P'";
-      ctx.fillText("Game Over", width / 2, height / 2 - 40);
+      ctx.fillText("Game Over", width / 2, height / 2 - 50);
 
       ctx.font = "10px 'Press Start 2P'";
-      ctx.fillText(gameOverReason, width / 2, height / 2);
+      ctx.fillText(gameOverReason, width / 2, height / 2 - 20);
 
+      // --- Show Final Score ---
+      ctx.fillStyle = "#FFFF00"; // Yellow text for score
+      ctx.font = "12px 'Press Start 2P'";
+      ctx.fillText("Score: " + score, width / 2, height / 2 + 10);
+
+      ctx.fillStyle = "#ffffff"; // Reset to white
       ctx.font = "10px 'Press Start 2P'";
       // Updated restart text
-      ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 40);
+      ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 50);
     }
   }
 

@@ -37,6 +37,7 @@
   const startScreen = document.getElementById('start-screen');
   const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
+  const restartBtn = document.getElementById('restart-btn'); // NEW
 
   let width = window.innerWidth;
   let height = window.innerHeight;
@@ -639,6 +640,9 @@ const sightWords = [
     gameOver = true;
     gameOverReason = reason || "Game Over";
 
+    // --- NEW: Show Restart Button ---
+    restartBtn.style.display = 'block';
+
     // --- NEW: Stop background/boss music on Game Over ---
     if (currentMusicSource) {
       try { currentMusicSource.stop(); } catch(e) {}
@@ -667,6 +671,9 @@ const sightWords = [
       try { currentMusicSource.stop(); } catch(e) {}
       currentMusicSource = null;
     }
+
+    // --- NEW: Hide Restart Button ---
+    restartBtn.style.display = 'none';
 
     level = 1;
     score = 0;
@@ -1276,11 +1283,6 @@ const sightWords = [
       ctx.fillStyle = "#FFFF00"; // Yellow text for score
       ctx.font = "12px 'Press Start 2P'";
       ctx.fillText("Score: " + score, width / 2, height / 2 + 10);
-
-      ctx.fillStyle = "#ffffff"; // Reset to white
-      ctx.font = "10px 'Press Start 2P'";
-      // Updated restart text
-      ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 50);
     }
 
     ctx.restore(); // NEW: Restore context to undo the shake translation
@@ -1368,27 +1370,35 @@ const sightWords = [
     rightBtn.addEventListener('mouseup', (e) => endMove(e, 'right'), { passive: false });
     rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
 
-    // --- Shoot/Restart Listener ---
+    // --- Shoot Listener ---
     const onShootPress = (e) => { // No longer async
       // e.preventDefault() is crucial to prevent ghost mouse events on touch
       if (e.cancelable) e.preventDefault();
 
       // FIX: Resume AudioContext immediately on interaction.
-      // This fixes the "lag" sensation caused by the browser waking up the audio engine late.
       if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume();
       }
 
-      if (gameOver) {
-        // restartGame is no longer async
-        restartGame(); // No longer awaited
-      } else {
+      // Only shoot, do not restart
+      if (!gameOver) {
         shoot();
       }
     };
 
     shootBtn.addEventListener('touchstart', onShootPress, { passive: false });
     shootBtn.addEventListener('mousedown', onShootPress, { passive: false });
+
+    // --- NEW: Restart Button Listener ---
+    const onRestartPress = (e) => {
+      // e.preventDefault() prevents ghost clicks
+      if (e.cancelable) e.preventDefault();
+      if (gameOver) {
+        restartGame();
+      }
+    };
+    restartBtn.addEventListener('click', onRestartPress);
+    restartBtn.addEventListener('touchstart', onRestartPress, { passive: false });
 
     // --- NEW: Keyboard Listeners ---
     window.addEventListener('keydown', (e) => {
@@ -1400,11 +1410,8 @@ const sightWords = [
         moveRight = true;
         e.preventDefault(); // Prevent window scrolling
       } else if (e.key === ' ' || e.key === 'Spacebar') {
-        // Use the same logic as the shoot button
-        // This handles both shooting and restarting on game over
-        if (gameOver) {
-          restartGame();
-        } else {
+        // Only shoot, do not restart via Spacebar to keep controls consistent
+        if (!gameOver) {
           shoot();
         }
         e.preventDefault(); // Prevent spacebar from scrolling page

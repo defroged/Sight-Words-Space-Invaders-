@@ -309,14 +309,16 @@ const sightWords = [
    * Creates a function that plays a given AudioBuffer.
    * This fits the soundBank pattern for our loaded TTS sounds.
    * @param {AudioBuffer} buffer - The decoded audio buffer.
+   * @param {boolean} loop - Whether to loop the audio.
    * @returns {Function} A function that plays the sound.
    */
-  function createBufferPlayer(buffer) {
+  function createBufferPlayer(buffer, loop = false) {
     return () => {
       if (!isAudioReady) return;
       try {
         const source = audioContext.createBufferSource();
         source.buffer = buffer;
+        source.loop = loop; // Set loop property
         source.connect(audioContext.destination);
         source.start(0);
         return source;
@@ -330,15 +332,16 @@ const sightWords = [
    * Fetches and decodes a static audio file (like an MP3) from the server.
    * @param {string} url - The path to the file (e.g., '/boss.mp3').
    * @param {string} name - The key to store it in the soundBank.
+   * @param {boolean} loop - Whether to loop the audio.
    */
-  async function loadStaticAudio(url, name) {
+  async function loadStaticAudio(url, name, loop = false) {
     if (!isAudioReady) return;
     try {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Failed to fetch ${url}`);
       const arrayBuffer = await response.arrayBuffer();
       const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      soundBank[name] = createBufferPlayer(decodedBuffer);
+      soundBank[name] = createBufferPlayer(decodedBuffer, loop);
     } catch (e) {
       console.error(`Failed to load audio file "${name}":`, e);
     }
@@ -1360,7 +1363,8 @@ const sightWords = [
     // We use Promise.all to load words and boss music in parallel
     await Promise.all([
       loadWordAudio(sightWords),
-      loadStaticAudio('/boss.mp3', 'bossMusic')
+      // Pass true as the 3rd argument to enable looping
+      loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);
     // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 

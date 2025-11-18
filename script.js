@@ -746,17 +746,15 @@ const sightWords = [
       if (hitsThisLevel >= hitsPerLevel) {
         // --- LEVEL UP ---
         level++;
-
-        // NEW: Only play level up sound if it is NOT a boss level
+        // NEW: Only play sound if NOT a boss level (multiples of 10)
         if (level % 10 !== 0) {
           playSound('levelUp');
         }
-
         isLevelingUp = true; // Set the new state
         levelUpTimer = levelUpDuration; // Set the timer
-        // We DO NOT call startLevel() here anymore.
-        // The update() function will call it when the timer finishes.
-      } else {
+        // We DO NOT call startLevel() here anymore.
+        // The update() function will call it when the timer finishes.
+      } else {
         // Just spawn the next wave
         spawnBatch(); // No longer awaited
       }
@@ -1304,14 +1302,12 @@ const sightWords = [
          hitsThisLevel = 0;
          gameOver = false; 
          enemies = [];
-         bullets = [];
-         enemyBullets = [];
-         pendingSpawn = false;
-
-         playSound('levelUp'); // Audio confirmation
-         startLevel(); // Start the level immediately
-         
-         inputHistory = []; // Reset history so it doesn't trigger twice
+		 bullets = [];
+          enemyBullets = [];
+          pendingSpawn = false;
+          startLevel(); // Start the level immediately
+          
+          inputHistory = []; // Reset history so it doesn't trigger twice
          return; // Don't move the ship on the final trigger tap
       }
       // ------------------------

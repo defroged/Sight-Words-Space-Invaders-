@@ -22,6 +22,7 @@
 
   // --- Visual Assets ---
   let stars = []; // Store star positions and speeds
+  let screenShake = 0; // NEW: Controls the intensity of the screen shake
 
   const player = {
     x: width / 2,
@@ -89,13 +90,13 @@ const sightWords = [
 
   function initStars() {
     stars = [];
-    const starCount = 100;
+    const starCount = 150; // Increased count for better density
     for (let i = 0; i < starCount; i++) {
       stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: Math.random() * 2 + 1, // Size between 1 and 3
-        speed: Math.random() * 50 + 20 // Speed between 20 and 70
+        // z represents depth: 1 is close/fast, 4 is far/slow
+        z: Math.random() * 3 + 1 
       });
     }
   }
@@ -517,6 +518,8 @@ const sightWords = [
     if (now - lastShotTime < shotCooldown) return;
     lastShotTime = now;
 
+    screenShake = 4; // NEW: Small kickback when shooting
+
     bullets.push({
       x: player.x,
       y: player.y - player.height / 2,
@@ -529,6 +532,8 @@ const sightWords = [
   }
 
   function createExplosion(x, y) {
+    screenShake = 15; // NEW: Big shake when something explodes!
+
     const explosionDuration = 0.4; // 0.4 seconds
     explosions.push({
       x: x,
@@ -591,6 +596,12 @@ const sightWords = [
   }
 
   function update(dt) {
+    // --- NEW: Shake Decay ---
+    if (screenShake > 0) {
+      screenShake -= dt * 60; // Decay speed
+      if (screenShake < 0) screenShake = 0;
+    }
+
     // Always update stars for visual effect, even if game over (optional)
     updateStars(dt);
 
@@ -862,8 +873,11 @@ const sightWords = [
   }
 
   function updateStars(dt) {
+    const baseSpeed = 100 + (level * 10); // NEW: Stars get faster as you level up
     for (const star of stars) {
-      star.y += star.speed * dt;
+      // Movement depends on depth (1/z). Closer stars move faster.
+      star.y += (baseSpeed / star.z) * dt; 
+      
       // If star goes off bottom, wrap to top at random X
       if (star.y > height) {
         star.y = 0;
@@ -876,10 +890,15 @@ const sightWords = [
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, width, height);
 
-    // Draw moving stars
-    ctx.fillStyle = "#888"; 
+    // Draw moving stars with depth
     for (const star of stars) {
-      ctx.fillRect(star.x, star.y, star.size, star.size);
+      // Calculate brightness based on depth (closer = brighter)
+      const brightness = Math.floor(255 / star.z);
+      // Calculate size based on depth (closer = bigger)
+      const size = Math.max(1, 4 - star.z);
+      
+      ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+      ctx.fillRect(star.x, star.y, size, size);
     }
   }
 
@@ -888,7 +907,17 @@ const sightWords = [
   function draw() {
     // operations (like resize) can reset it.
     ctx.imageSmoothingEnabled = false;
-    drawBackground();
+    
+    // 1. Clear background (Static black)
+    drawBackground(); 
+
+    // 2. Apply Screen Shake to the rest of the game
+    ctx.save(); // Save current state
+    if (screenShake > 0) {
+      const dx = (Math.random() - 0.5) * screenShake;
+      const dy = (Math.random() - 0.5) * screenShake;
+      ctx.translate(dx, dy);
+    }
 
     // --- DRAW PLAYER SHIP (Retro Style) ---
     const px = player.x;
@@ -1106,6 +1135,8 @@ const sightWords = [
       // Updated restart text
       ctx.fillText("Tap SHOOT to restart", width / 2, height / 2 + 50);
     }
+
+    ctx.restore(); // NEW: Restore context to undo the shake translation
   }
 
   // --- New Control Handlers ---

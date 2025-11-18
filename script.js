@@ -84,6 +84,9 @@ let bullets = [];
   let levelUpTimer = 0;
   const levelUpDuration = 3.0; // 3 seconds
 
+  // --- NEW: Game Start (Warp In) State ---
+  let isGameStarting = false;
+
   // --- NEW: Boss Intro State ---
   let isBossIntro = false;
   let bossIntroTimer = 0;
@@ -570,8 +573,8 @@ const sightWords = [
 
   function shoot() {
     if (gameOver) return;
-    // --- NEW: Block shooting during Boss Intro ---
-    if (isBossIntro) return; 
+    // --- NEW: Block shooting during Boss Intro or Game Start ---
+    if (isBossIntro || isGameStarting) return; 
 
     const now = performance.now();
     if (now - lastShotTime < shotCooldown) return;
@@ -666,11 +669,17 @@ const sightWords = [
     bullets = [];
     enemies = [];
     enemyBullets = [];
+    
+    // --- NEW: Warp In Setup ---
     player.x = width / 2;
-    clampPlayerX();
-    // startLevel is no longer async
-    startLevel(); // No longer awaited
+    // Start player OFF SCREEN at the bottom
+    player.y = height + 100; 
+    
+    isGameStarting = true; // Trigger the warp-in state
     playSound('startGame');
+    
+    // We DO NOT call startLevel() here. 
+    // The update() loop will call it when the ship reaches position.
   }
 
   function update(dt) {
@@ -685,6 +694,22 @@ const sightWords = [
     updateStars(dt);
 
     if (gameOver) return;
+
+    // --- NEW: Game Start (Warp In) Logic ---
+    if (isGameStarting) {
+        // Target Y position
+        const targetY = height - 30;
+        // Move ship up quickly (400px per second)
+        player.y -= 400 * dt;
+
+        // If we reached (or passed) the target
+        if (player.y <= targetY) {
+            player.y = targetY;
+            isGameStarting = false; // Animation done
+            startLevel(); // NOW we spawn the enemies
+        }
+        return; // Skip rest of update loop while warping in
+    }
 
     // --- NEW: Boss Intro Logic ---
     if (isBossIntro) {
@@ -1250,7 +1275,16 @@ const sightWords = [
     }
     // --- END Level Up Animation ---
 
-    if (gameOver) {
+    // --- NEW: Game Start Animation Text ---
+    if (isGameStarting) {
+        ctx.fillStyle = "#00FF00"; // Green text matching ship
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "40px 'Press Start 2P'";
+        ctx.fillText("READY", width / 2, height / 2 - 50);
+    }
+
+    if (gameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, width, height);
 

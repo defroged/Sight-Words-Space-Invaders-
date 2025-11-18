@@ -618,6 +618,12 @@ const sightWords = [
     gameOver = true;
     gameOverReason = reason || "Game Over";
 
+    // --- NEW: Stop background/boss music on Game Over ---
+    if (currentMusicSource) {
+      try { currentMusicSource.stop(); } catch(e) {}
+      currentMusicSource = null;
+    }
+
     // Play the appropriate sound based on the reason
     switch (reason) {
       case "Wrong word!":
@@ -635,6 +641,12 @@ const sightWords = [
   }
 
   function restartGame() { // No longer async
+    // --- NEW: Safety stop for any lingering music ---
+    if (currentMusicSource) {
+      try { currentMusicSource.stop(); } catch(e) {}
+      currentMusicSource = null;
+    }
+
     level = 1;
     score = 0;
     hitsThisLevel = 0;

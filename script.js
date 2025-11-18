@@ -303,7 +303,7 @@ const sightWords = [
     }
   }
 
-  /**
+/**
    * Creates a function that plays a given AudioBuffer.
    * This fits the soundBank pattern for our loaded TTS sounds.
    * @param {AudioBuffer} buffer - The decoded audio buffer.
@@ -321,6 +321,24 @@ const sightWords = [
         console.error("Error playing buffer:", e);
       }
     };
+  }
+
+  /**
+   * Fetches and decodes a static audio file (like an MP3) from the server.
+   * @param {string} url - The path to the file (e.g., '/boss.mp3').
+   * @param {string} name - The key to store it in the soundBank.
+   */
+  async function loadStaticAudio(url, name) {
+    if (!isAudioReady) return;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+      const arrayBuffer = await response.arrayBuffer();
+      const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      soundBank[name] = createBufferPlayer(decodedBuffer);
+    } catch (e) {
+      console.error(`Failed to load audio file "${name}":`, e);
+    }
   }
 
   /**
@@ -427,7 +445,9 @@ const sightWords = [
     // Pick a random word from the pool to be the BOSS word
     const randomIndex = Math.floor(Math.random() * sightWords.length);
     currentTargetWord = sightWords[randomIndex];
+    
     playSound(currentTargetWord);
+    playSound('bossMusic'); // Play the loaded boss music
 
     // Create the Boss Object
     enemies.push({
@@ -1323,8 +1343,11 @@ const sightWords = [
     initAudio();
     
     // 2. Load ALL audio for the entire game
-    // This is the part that takes time.
-    await loadWordAudio(sightWords);
+    // We use Promise.all to load words and boss music in parallel
+    await Promise.all([
+      loadWordAudio(sightWords),
+      loadStaticAudio('/boss.mp3', 'bossMusic')
+    ]);
     // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 
     // 3. Hide loading screen

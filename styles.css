@@ -320,37 +320,87 @@
       padding: 0;
     }
 
-    /* Pause Menu Styling */
-    #pause-menu {
+    /* --- Review / Pause Screen Styling --- */
+    #review-screen {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #000; /* Solid black to cover game */
+      background-color: rgba(0, 0, 0, 0.95); /* Mostly opaque black */
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start; /* Align top so grid fits */
+      padding-top: 40px;
+      box-sizing: border-box;
       z-index: 2000;
     }
 
-    #pause-menu h1 {
+    #review-screen h1 {
       color: #fff;
       font-family: "Press Start 2P", cursive;
-      margin-bottom: 40px;
+      margin-bottom: 10px;
+      font-size: 24px;
       text-transform: uppercase;
+      text-align: center;
     }
 
-    #resume-btn {
+    .instruction {
+      color: #00ffcc;
+      font-family: "Press Start 2P", cursive;
+      font-size: 12px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    #review-grid {
+      display: grid;
+      /* Responsive grid: roughly 3-4 columns on mobile */
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 15px;
+      width: 90%;
+      max-width: 600px;
+      margin-bottom: 30px;
+      overflow-y: auto; /* Allow scrolling if screen is very short */
+      padding-bottom: 20px;
+    }
+
+    .review-word-card {
+      background-color: #FF0000; /* Enemy Red */
+      color: #FFFFFF;
+      font-family: "Press Start 2P", cursive;
+      font-size: 12px;
+      padding: 15px 5px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid transparent;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .review-word-card:active {
+      background-color: #FFFFFF;
+      color: #FF0000;
+      border: 2px solid #FF0000;
+    }
+
+    #review-action-btn {
       font-family: "Press Start 2P", cursive;
       font-size: 20px;
-      padding: 15px 30px;
+      padding: 20px 40px;
       cursor: pointer;
-      background: transparent;
-      color: #00FF00;
-      border: 4px solid #00FF00;
+      background: #00FF00;
+      color: #000;
+      border: none;
       text-transform: uppercase;
+      margin-bottom: 20px;
+      /* Ensure it stays at bottom if grid is short, or flows naturally */
+      flex-shrink: 0; 
+    }
+
+    #review-action-btn:active {
+      background-color: #fff;
     }
 	
 	

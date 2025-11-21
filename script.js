@@ -37,12 +37,17 @@
   const startScreen = document.getElementById('start-screen');
   const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
-   
-  // --- NEW: Pause Elements ---
+    
+  // --- NEW: Pause/Review Elements ---
   const pauseBtn = document.getElementById('pause-btn');
-  const pauseMenu = document.getElementById('pause-menu');
-  const resumeBtn = document.getElementById('resume-btn');
+  // Removed old pauseMenu references
+  const reviewScreen = document.getElementById('review-screen');
+  const reviewTitle = document.getElementById('review-title');
+  const reviewGrid = document.getElementById('review-grid');
+  const reviewActionBtn = document.getElementById('review-action-btn');
+  
   let isPaused = false;
+  let isInitialReview = true; // Tracks if we are in the pre-game review
 
   // --- NEW: Game Over Elements ---
   const gameOverScreen = document.getElementById('game-over-screen');
@@ -432,6 +437,28 @@ const sightWords = [
       // 6. Signal that loading is complete
       isBatchAudioLoading = false;
     }
+  }
+
+  function generateReviewGrid() {
+    reviewGrid.innerHTML = ''; // Clear existing
+    
+    sightWords.forEach(word => {
+      const card = document.createElement('div');
+      card.className = 'review-word-card';
+      card.innerText = word;
+      
+      // Add click listener to play audio
+      const playWordAudio = (e) => {
+        e.stopPropagation(); // Prevent triggering other clicks
+        e.preventDefault();
+        playSound(word);
+      };
+      
+      card.addEventListener('mousedown', playWordAudio);
+      card.addEventListener('touchstart', playWordAudio, { passive: false });
+      
+      reviewGrid.appendChild(card);
+    });
   }
 
   function clampPlayerX() {
@@ -1475,7 +1502,7 @@ const sightWords = [
     restartBtn.addEventListener('click', onRestartPress);
     restartBtn.addEventListener('touchstart', onRestartPress, { passive: false });
 
-    // --- PAUSE BUTTON LOGIC ---
+    // --- PAUSE / REVIEW LOGIC ---
     const togglePause = (e) => {
       if (e && e.preventDefault) e.preventDefault();
       if (gameOver) return;
@@ -1483,24 +1510,55 @@ const sightWords = [
       isPaused = !isPaused;
 
       if (isPaused) {
-        pauseMenu.style.display = 'flex';
-        pauseBtn.style.display = 'none'; // Hide small button while menu is open
-        // Optional: Suspend audio context so sound stops
+        // Show Review Screen in Pause Mode
+        isInitialReview = false;
+        reviewTitle.innerText = "PAUSED";
+        reviewActionBtn.innerText = "RESUME";
+        
+        generateReviewGrid(); // Ensure grid is populated
+        reviewScreen.style.display = 'flex';
+        pauseBtn.style.display = 'none'; 
+
         if (audioContext) audioContext.suspend();
       } else {
-        pauseMenu.style.display = 'none';
+        // Hide Review Screen
+        reviewScreen.style.display = 'none';
         pauseBtn.style.display = 'flex';
-        // Resume audio
+        
         if (audioContext) audioContext.resume();
-        // Reset lastTime to prevent a huge dt jump
         lastTime = performance.now();
+      }
+    };
+
+    const onReviewAction = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      
+      // If this is the initial pre-game review
+      if (isInitialReview) {
+        reviewScreen.style.display = 'none';
+        pauseBtn.style.display = 'flex';
+        controls.style.display = 'flex';
+        canvas.style.display = 'block';
+        
+        // Start the actual gameplay logic
+        restartGame();
+        
+        // Start the loop if not already running
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      } 
+      // If this is a pause menu resume
+      else {
+        togglePause();
       }
     };
 
     pauseBtn.addEventListener('click', togglePause);
     pauseBtn.addEventListener('touchstart', togglePause, { passive: false });
-    resumeBtn.addEventListener('click', togglePause);
-    resumeBtn.addEventListener('touchstart', togglePause, { passive: false });
+    
+    // Listener for the big Start/Resume button
+    reviewActionBtn.addEventListener('click', onReviewAction);
+    reviewActionBtn.addEventListener('touchstart', onReviewAction, { passive: false });
 
     // --- NEW: Keyboard Listeners ---
     window.addEventListener('keydown', (e) => {
@@ -1573,21 +1631,18 @@ const sightWords = [
   playBtn.addEventListener('click', async () => { // Make the handler async
     // 0. Hide start screen, show loading screen
     startScreen.style.display = 'none';
-    loadingScreen.style.display = 'flex'; // Show the new loader
+    loadingScreen.style.display = 'flex'; 
 
     // 1. Initialize the Audio Context (MUST be first)
     initAudio();
     
     // 2. Load ALL audio for the entire game
-    // We use Promise.all to load words, level up sound, and boss music in parallel
     await Promise.all([
       loadWordAudio(sightWords),
-      loadStaticAudio('/level-up.mp3', 'levelUp', false), // NEW: Load level up MP3
-      loadStaticAudio('/boss-explosion.mp3', 'bossExplosion', false), // NEW: Boss explosion SFX
-      // Pass true as the 3rd argument to enable looping
+      loadStaticAudio('/level-up.mp3', 'levelUp', false), 
+      loadStaticAudio('/boss-explosion.mp3', 'bossExplosion', false), 
       loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);
-    // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 
     // --- Stop Intro Music ---
     introAudio.pause();
@@ -1596,27 +1651,24 @@ const sightWords = [
     // 3. Hide loading screen
     loadingScreen.style.display = 'none';
 
-    // 4. Show game elements
-    canvas.style.display = 'block';
-    controls.style.display = 'flex'; // Use 'flex' as defined in CSS
-    pauseBtn.style.display = 'flex'; // Show the pause button
+    // 4. SHOW REVIEW SCREEN (Instead of starting game immediately)
+    isInitialReview = true;
+    reviewTitle.innerText = "REVIEW WORDS";
+    reviewActionBtn.innerText = "START GAME";
+    generateReviewGrid();
+    reviewScreen.style.display = 'flex';
 
-    // 5. Make sure our CSS var and canvas size match the current viewport
+    // 5. Make sure our CSS var matches viewport
     resize();
 
-    // 6. Try real fullscreen where supported; otherwise fall back
-    //    to the pseudo-fullscreen behavior (mobile iOS/Firefox).
+    // 6. Enter Fullscreen
     enterFullScreen();
 
-    // 7. A small delayed resize helps once browser toolbars finish animating.
+    // 7. Delayed resize
     setTimeout(resize, 350);
-
-    // 8. Start the game logic. This is no longer async.
-    restartGame(); // No longer awaited
     
-    // 9. Start the main game loop
-    lastTime = performance.now(); // Initialize lastTime right before starting
-    requestAnimationFrame(loop);
+    // NOTE: We do NOT call restartGame() or requestAnimationFrame(loop) here anymore.
+    // That happens when the user clicks the "START GAME" button on the review screen.
   });
 
 

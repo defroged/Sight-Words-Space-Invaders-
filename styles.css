@@ -327,12 +327,16 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.95); /* Mostly opaque black */
+      background-color: rgba(0, 0, 0, 0.95); 
       display: none;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start; /* Align top so grid fits */
-      padding-top: 40px;
+      
+      /* Move content up */
+      justify-content: flex-start; 
+      padding-top: 20px; /* Reduced top padding */
+      padding-bottom: 20px;
+      
       box-sizing: border-box;
       z-index: 2000;
     }
@@ -340,26 +344,32 @@
     #review-screen h1 {
       color: #fff;
       font-family: "Press Start 2P", cursive;
-      margin-bottom: 10px;
-      font-size: 24px;
+      margin-bottom: 15px;
+      font-size: 20px; /* Slightly smaller header to save space for words */
       text-transform: uppercase;
       text-align: center;
+      flex-shrink: 0; /* Prevent header from squishing */
     }
 
     #review-grid {
       display: grid;
-      /* Reduced min-width to 75px to fit 4 columns on most mobile screens */
-      grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); 
-      gap: 8px; /* Reduced gap */
-      width: 95%; /* Use more width */
-      max-width: 600px;
+      /* 110px allows for readable text size without cramping */
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
+      gap: 15px; 
+      width: 90%; 
+      max-width: 800px;
       
-      /* IMPORTANT: Limit height to 65% of screen so button is never pushed off */
-      max-height: 65vh; 
-      overflow-y: auto; /* Enable scrolling inside the grid */
+      /* FLEX MAGIC: Take up all available vertical space */
+      flex: 1; 
+      min-height: 0; /* Crucial for nested flex scrolling */
       
-      margin-bottom: 20px;
-      padding: 5px; /* Small padding to prevent scrollbar clipping */
+      /* ENABLE SCROLLING */
+      overflow-y: auto; 
+      /* This overrides the global touch-action: none, allowing scroll */
+      touch-action: pan-y; 
+      
+      margin-bottom: 15px;
+      padding: 10px; /* Internal padding so scrollbars don't cover text */
     }
 
     .review-word-card {
@@ -367,11 +377,11 @@
       color: #FFFFFF;
       font-family: "Press Start 2P", cursive;
       
-      /* Smaller font to fit long words like "beautiful" */
-      font-size: 9px; 
+      /* RESTORED READABILITY */
+      font-size: 12px; 
+      line-height: 1.4;
       
-      /* Tighter padding */
-      padding: 10px 2px; 
+      padding: 15px 5px; 
       
       text-align: center;
       cursor: pointer;
@@ -379,12 +389,12 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       
-      /* Ensure long words wrap instead of overflowing */
       word-wrap: break-word; 
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 30px; /* Ensure uniform height */
+      min-height: 50px; /* Taller boxes for easier tapping */
+      box-shadow: 4px 4px 0px #990000; /* Retro shadow depth */
     }
 
     .review-word-card:active {

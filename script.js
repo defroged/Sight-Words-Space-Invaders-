@@ -1386,7 +1386,7 @@ const sightWords = [
   function setupControls() {
     // --- Cheat Code Variables ---
     let inputHistory = [];
-    const cheatSequence = ['left', 'left', 'left', 'left', 'left', 'right', 'right', 'right', 'right', 'right', 'left'];
+    const cheatSequence = ['left', 'left', 'left', 'left', 'left', 'right', 'right', 'right', 'right', 'right', 'left', 'right', 'left', 'right', 'left'];
 
     // --- Movement Listeners ---
     const startMove = (e, direction) => {

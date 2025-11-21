@@ -1417,19 +1417,32 @@ const sightWords = [
     rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
 
     // --- Tap to Shoot Listener (Global) ---
+    let lastTouchTime = 0; // Track the time of the last touch
+
     const onScreenTap = (e) => {
       // 1. Ignore taps if the target is one of our buttons (Left, Right, Replay, Restart)
       if (e.target.closest('button')) return;
 
-      // 2. Ignore taps if on the Start Screen (Play button handles that)
+      // 2. Ignore taps if on the Start Screen
       if (startScreen.style.display !== 'none') return;
 
-      // 3. Resume AudioContext immediately on interaction
+      // 3. Ghost Click Prevention:
+      // If this is a mouse event that happened immediately after a touch, ignore it.
+      if (e.type === 'mousedown' && performance.now() - lastTouchTime < 500) {
+        return;
+      }
+
+      // 4. Record timestamp if it's a touch event
+      if (e.type === 'touchstart') {
+        lastTouchTime = performance.now();
+      }
+
+      // 5. Resume AudioContext immediately on interaction
       if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume();
       }
 
-      // 4. Trigger Shoot
+      // 6. Trigger Shoot
       if (!gameOver) {
         shoot();
       }

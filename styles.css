@@ -346,37 +346,45 @@
       text-align: center;
     }
 
-    .instruction {
-      color: #00ffcc;
-      font-family: "Press Start 2P", cursive;
-      font-size: 12px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
     #review-grid {
       display: grid;
-      /* Responsive grid: roughly 3-4 columns on mobile */
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: 15px;
-      width: 90%;
+      /* Reduced min-width to 75px to fit 4 columns on most mobile screens */
+      grid-template-columns: repeat(auto-fit, minmax(75px, 1fr)); 
+      gap: 8px; /* Reduced gap */
+      width: 95%; /* Use more width */
       max-width: 600px;
-      margin-bottom: 30px;
-      overflow-y: auto; /* Allow scrolling if screen is very short */
-      padding-bottom: 20px;
+      
+      /* IMPORTANT: Limit height to 65% of screen so button is never pushed off */
+      max-height: 65vh; 
+      overflow-y: auto; /* Enable scrolling inside the grid */
+      
+      margin-bottom: 20px;
+      padding: 5px; /* Small padding to prevent scrollbar clipping */
     }
 
     .review-word-card {
-      background-color: #FF0000; /* Enemy Red */
+      background-color: #FF0000;
       color: #FFFFFF;
       font-family: "Press Start 2P", cursive;
-      font-size: 12px;
-      padding: 15px 5px;
+      
+      /* Smaller font to fit long words like "beautiful" */
+      font-size: 9px; 
+      
+      /* Tighter padding */
+      padding: 10px 2px; 
+      
       text-align: center;
       cursor: pointer;
       border: 2px solid transparent;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
+      
+      /* Ensure long words wrap instead of overflowing */
+      word-wrap: break-word; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px; /* Ensure uniform height */
     }
 
     .review-word-card:active {

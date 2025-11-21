@@ -307,8 +307,8 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.8);
-      color: #000;
+      background-color: transparent;
+      color: #fff;
       border: 2px solid #fff;
       font-family: "Press Start 2P", cursive;
       font-size: 16px;

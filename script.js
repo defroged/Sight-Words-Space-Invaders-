@@ -1030,6 +1030,7 @@ const sightWords = [
 
             if (e.word === currentTargetWord) {
               // --- CORRECT HIT ---
+              enemyBullets = []; // Clear all existing enemy bullets
               createExplosion(b.x, b.y); // Explosion at impact point
               playSound('hitCorrect');
               

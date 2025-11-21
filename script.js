@@ -461,33 +461,6 @@ const sightWords = [
     });
   }
 
-  function showReviewScreen(isPauseMode) {
-    // 1. Populate the grid
-    generateReviewGrid();
-    
-    // 2. Show the screen container
-    reviewScreen.style.display = 'flex';
-
-    if (isPauseMode) {
-      // --- PAUSE MODE ---
-      isInitialReview = false;
-      reviewTitle.innerText = "PAUSED";
-      reviewActionBtn.innerText = "RESUME";
-      pauseBtn.style.display = 'none'; 
-      if (audioContext) audioContext.suspend();
-    } else {
-      // --- PRE-GAME REVIEW MODE ---
-      isInitialReview = true;
-      reviewTitle.innerText = "REVIEW WORDS";
-      reviewActionBtn.innerText = "START GAME";
-      
-      // Ensure game canvas/controls are visible in background
-      canvas.style.display = 'block';
-      controls.style.display = 'flex';
-      pauseBtn.style.display = 'none'; // Hide pause button during review
-    }
-  }
-
   function clampPlayerX() {
     const half = player.width / 2;
     if (player.x < half) player.x = half;
@@ -1486,29 +1459,35 @@ const sightWords = [
     let lastTouchTime = 0; // Track the time of the last touch
 
     const onScreenTap = (e) => {
-      // 1. Ignore taps if the target is one of our buttons (Left, Right, Replay, Restart)
-      if (e.target.closest('button')) return;
+      // 1. Ignore taps if the target is one of our buttons (Left, Right, Replay, Restart, Review Card)
+      // We also check .review-word-card explicitly just in case bubbling causes issues, 
+      // though stopPropagation in generateReviewGrid usually handles it.
+      if (e.target.closest('button') || e.target.closest('.review-word-card')) return;
 
       // 2. Ignore taps if on the Start Screen
       if (startScreen.style.display !== 'none') return;
 
-      // 3. Ghost Click Prevention:
+      // 3. NEW: Ignore taps if on the Review/Pause Screen
+      // This prevents shooting when clicking the background of the review grid
+      if (reviewScreen.style.display !== 'none') return;
+
+      // 4. Ghost Click Prevention:
       // If this is a mouse event that happened immediately after a touch, ignore it.
       if (e.type === 'mousedown' && performance.now() - lastTouchTime < 500) {
         return;
       }
 
-      // 4. Record timestamp if it's a touch event
+      // 5. Record timestamp if it's a touch event
       if (e.type === 'touchstart') {
         lastTouchTime = performance.now();
       }
 
-      // 5. Resume AudioContext immediately on interaction
+      // 6. Resume AudioContext immediately on interaction
       if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume();
       }
 
-      // 6. Trigger Shoot
+      // 7. Trigger Shoot
       if (!gameOver) {
         shoot();
       }
@@ -1537,13 +1516,25 @@ const sightWords = [
       isPaused = !isPaused;
 
       if (isPaused) {
-        showReviewScreen(true); // Call our new helper function
+        // Show Review Screen in Pause Mode
+        isInitialReview = false;
+        reviewTitle.innerText = "PAUSED";
+        reviewActionBtn.innerText = "RESUME";
+        
+        generateReviewGrid(); // Ensure grid is populated
+        reviewScreen.style.display = 'flex';
+        pauseBtn.style.display = 'none'; 
+
+        // We removed audioContext.suspend() here so TTS works
       } else {
-        // Hide Review Screen and Resume
+        // Hide Review Screen
         reviewScreen.style.display = 'none';
         pauseBtn.style.display = 'flex';
         
-        if (audioContext) audioContext.resume();
+        // Ensure audio is running when we resume
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
         lastTime = performance.now();
       }
     };
@@ -1670,7 +1661,11 @@ const sightWords = [
     loadingScreen.style.display = 'none';
 
     // 4. SHOW REVIEW SCREEN (Instead of starting game immediately)
-    showReviewScreen(false); // Call our new helper function
+    isInitialReview = true;
+    reviewTitle.innerText = "REVIEW WORDS";
+    reviewActionBtn.innerText = "START GAME";
+    generateReviewGrid();
+    reviewScreen.style.display = 'flex';
 
     // 5. Make sure our CSS var matches viewport
     resize();

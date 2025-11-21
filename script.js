@@ -38,14 +38,11 @@
   const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
    
-  // --- NEW: Pause/Review Elements ---
+  // --- NEW: Pause Elements ---
   const pauseBtn = document.getElementById('pause-btn');
-  const reviewScreen = document.getElementById('review-screen');
-  const reviewTitle = document.getElementById('review-title');
-  const reviewActionBtn = document.getElementById('review-action-btn');
-  const reviewGrid = document.getElementById('review-grid');
+  const pauseMenu = document.getElementById('pause-menu');
+  const resumeBtn = document.getElementById('resume-btn');
   let isPaused = false;
-  let isPreGameReview = false; // Tracks if we are reviewing before the game starts
 
   // --- NEW: Game Over Elements ---
   const gameOverScreen = document.getElementById('game-over-screen');
@@ -1478,212 +1475,68 @@ const sightWords = [
     restartBtn.addEventListener('click', onRestartPress);
     restartBtn.addEventListener('touchstart', onRestartPress, { passive: false });
 
-    // --- PAUSE / REVIEW LOGIC ---
-    
-    // --- NEW: Review Screen Logic (Global Scope) ---
+    // --- PAUSE BUTTON LOGIC ---
+    const togglePause = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (gameOver) return;
 
-  const showReviewScreen = (mode) => {
-    // mode can be 'START' (pre-game) or 'PAUSE' (in-game)
-    reviewGrid.innerHTML = ''; // Clear existing grid
+      isPaused = !isPaused;
 
-    // Populate Grid with words
-    sightWords.forEach(word => {
-      const el = document.createElement('div');
-      el.className = 'review-word';
-      el.innerText = word;
-      // Add click listener to play sound
-      const playWord = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        playSound(word);
-      };
-      el.addEventListener('mousedown', playWord);
-      el.addEventListener('touchstart', playWord, { passive: false });
-      reviewGrid.appendChild(el);
-    });
-
-    reviewScreen.style.display = 'flex';
-
-    if (mode === 'START') {
-      isPreGameReview = true;
-      isPaused = false;
-      reviewTitle.innerText = "REVIEW WORDS";
-      reviewActionBtn.innerText = "START GAME";
-      pauseBtn.style.display = 'none';
-    } else {
-      // Pause Mode
-      isPreGameReview = false;
-      isPaused = true; // Set global pause state
-      reviewTitle.innerText = "PAUSED";
-      reviewActionBtn.innerText = "RESUME";
-      pauseBtn.style.display = 'none';
-      if (audioContext) audioContext.suspend();
-    }
-  };
-
-  const handleReviewAction = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-
-    // Close the screen
-    reviewScreen.style.display = 'none';
-    pauseBtn.style.display = 'flex';
-
-    if (isPreGameReview) {
-      // We are starting the game for the first time
-      isPreGameReview = false;
-
-      // Make sure canvas is visible and sized
-      canvas.style.display = 'block';
-      controls.style.display = 'flex';
-      resize();
-      enterFullScreen();
-      setTimeout(resize, 350);
-
-      restartGame(); // ACTUALLY Start the game
-
-      // Start the loop if not already running
-      if (lastTime === 0) {
+      if (isPaused) {
+        pauseMenu.style.display = 'flex';
+        pauseBtn.style.display = 'none'; // Hide small button while menu is open
+        // Optional: Suspend audio context so sound stops
+        if (audioContext) audioContext.suspend();
+      } else {
+        pauseMenu.style.display = 'none';
+        pauseBtn.style.display = 'flex';
+        // Resume audio
+        if (audioContext) audioContext.resume();
+        // Reset lastTime to prevent a huge dt jump
         lastTime = performance.now();
-        requestAnimationFrame(loop);
-      }
-    } else {
-      // We are Resuming from Pause
-      isPaused = false;
-      if (audioContext) audioContext.resume();
-      lastTime = performance.now();
-    }
-  };
-
-  // --- Control Handlers ---
-
-  function setupControls() {
-    // --- Cheat Code Variables ---
-    let inputHistory = [];
-    const cheatSequence = ['left', 'left', 'left', 'left', 'left', 'right', 'right', 'right', 'right', 'right', 'left'];
-
-    // --- Movement Listeners ---
-    const startMove = (e, direction) => {
-      e.preventDefault();
-
-      // --- CHEAT CODE LOGIC ---
-      inputHistory.push(direction);
-      if (inputHistory.length > cheatSequence.length) {
-        inputHistory.shift();
-      }
-
-      if (JSON.stringify(inputHistory) === JSON.stringify(cheatSequence)) {
-        level = 10; 
-        score += 1000; 
-        hitsThisLevel = 0;
-        gameOver = false; 
-        enemies = [];
-        bullets = [];
-        enemyBullets = [];
-        pendingSpawn = false;
-        startLevel(); 
-        inputHistory = []; 
-        return; 
-      }
-
-      if (direction === 'left') moveLeft = true;
-      if (direction === 'right') moveRight = true;
-    };
-
-    const endMove = (e, direction) => {
-      e.preventDefault();
-      if (direction === 'left') moveLeft = false;
-      if (direction === 'right') moveRight = false;
-    };
-
-    // --- Replay Button ---
-    const onReplayPress = (e) => {
-      e.preventDefault();
-      if (currentTargetWord) {
-        playSound(currentTargetWord);
       }
     };
 
-    replayBtn.addEventListener('touchstart', onReplayPress, { passive: false });
-    replayBtn.addEventListener('mousedown', onReplayPress, { passive: false });
+    pauseBtn.addEventListener('click', togglePause);
+    pauseBtn.addEventListener('touchstart', togglePause, { passive: false });
+    resumeBtn.addEventListener('click', togglePause);
+    resumeBtn.addEventListener('touchstart', togglePause, { passive: false });
 
-    // --- Left Button ---
-    leftBtn.addEventListener('touchstart', (e) => startMove(e, 'left'), { passive: false });
-    leftBtn.addEventListener('mousedown', (e) => startMove(e, 'left'), { passive: false });
-    leftBtn.addEventListener('touchend', (e) => endMove(e, 'left'), { passive: false });
-    leftBtn.addEventListener('touchcancel', (e) => endMove(e, 'left'), { passive: false });
-    leftBtn.addEventListener('mouseup', (e) => endMove(e, 'left'), { passive: false });
-    leftBtn.addEventListener('mouseleave', (e) => endMove(e, 'left'), { passive: false });
-
-    // --- Right Button ---
-    rightBtn.addEventListener('touchstart', (e) => startMove(e, 'right'), { passive: false });
-    rightBtn.addEventListener('mousedown', (e) => startMove(e, 'right'), { passive: false });
-    rightBtn.addEventListener('touchend', (e) => endMove(e, 'right'), { passive: false });
-    rightBtn.addEventListener('touchcancel', (e) => endMove(e, 'right'), { passive: false });
-    rightBtn.addEventListener('mouseup', (e) => endMove(e, 'right'), { passive: false });
-    rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
-
-    // --- Tap to Shoot (Global) ---
-    let lastTouchTime = 0;
-    const onScreenTap = (e) => {
-      // Ignore taps on buttons, start screen, or review screen
-      if (e.target.closest('button')) return;
-      if (e.target.closest('.review-word')) return; // Don't shoot when clicking words
-      if (startScreen.style.display !== 'none') return;
-      if (reviewScreen.style.display === 'flex') return; // Don't shoot if reviewing
-
-      if (e.type === 'mousedown' && performance.now() - lastTouchTime < 500) return;
-      if (e.type === 'touchstart') lastTouchTime = performance.now();
-
-      if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-
-      if (!gameOver && !isPaused && !isPreGameReview) {
-        shoot();
-      }
-    };
-
-    window.addEventListener('touchstart', onScreenTap, { passive: false });
-    window.addEventListener('mousedown', onScreenTap, { passive: false });
-
-    // --- Restart Button ---
-    const onRestartPress = (e) => {
-      if (e.cancelable) e.preventDefault();
-      if (gameOver) {
-        restartGame();
-      }
-    };
-    restartBtn.addEventListener('click', onRestartPress);
-    restartBtn.addEventListener('touchstart', onRestartPress, { passive: false });
-
-    // --- Pause Button Listeners ---
-    pauseBtn.addEventListener('click', () => { if(!gameOver) showReviewScreen('PAUSE'); });
-    pauseBtn.addEventListener('touchstart', (e) => { 
-       e.preventDefault(); 
-       if(!gameOver) showReviewScreen('PAUSE'); 
-    }, { passive: false });
-
-    // --- Review Action Button (Start/Resume) ---
-    reviewActionBtn.addEventListener('click', handleReviewAction);
-    reviewActionBtn.addEventListener('touchstart', handleReviewAction, { passive: false });
-
-    // --- Keyboard Listeners ---
+    // --- NEW: Keyboard Listeners ---
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') { moveLeft = true; e.preventDefault(); }
-      else if (e.key === 'ArrowRight') { moveRight = true; e.preventDefault(); }
-      else if (e.key === ' ' || e.key === 'Spacebar') {
-        if (!gameOver && !isPaused && !isPreGameReview) shoot();
-        e.preventDefault();
+      // Check for arrow keys to move
+      if (e.key === 'ArrowLeft') {
+        moveLeft = true;
+        e.preventDefault(); // Prevent window scrolling
+      } else if (e.key === 'ArrowRight') {
+        moveRight = true;
+        e.preventDefault(); // Prevent window scrolling
+      } else if (e.key === ' ' || e.key === 'Spacebar') {
+        // Only shoot, do not restart via Spacebar to keep controls consistent
+        if (!gameOver) {
+          shoot();
+        }
+        e.preventDefault(); // Prevent spacebar from scrolling page
       }
     });
 
     window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowLeft') { moveLeft = false; e.preventDefault(); }
-      else if (e.key === 'ArrowRight') { moveRight = false; e.preventDefault(); }
+      // Check for arrow keys to stop moving
+      if (e.key === 'ArrowLeft') {
+        moveLeft = false;
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        moveRight = false;
+        e.preventDefault();
+      } else if (e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        // No action needed on keyup for 'shoot', as the cooldown
+        // in the shoot() function already handles rapid-fire.
+      }
     });
   }
-
-  // Set up the controls
+  
+  // Set up the new controls
   setupControls();
 
   // --- Fullscreen API Handler ---
@@ -1720,18 +1573,21 @@ const sightWords = [
   playBtn.addEventListener('click', async () => { // Make the handler async
     // 0. Hide start screen, show loading screen
     startScreen.style.display = 'none';
-    loadingScreen.style.display = 'flex'; 
+    loadingScreen.style.display = 'flex'; // Show the new loader
 
     // 1. Initialize the Audio Context (MUST be first)
     initAudio();
     
     // 2. Load ALL audio for the entire game
+    // We use Promise.all to load words, level up sound, and boss music in parallel
     await Promise.all([
       loadWordAudio(sightWords),
-      loadStaticAudio('/level-up.mp3', 'levelUp', false), 
-      loadStaticAudio('/boss-explosion.mp3', 'bossExplosion', false),
+      loadStaticAudio('/level-up.mp3', 'levelUp', false), // NEW: Load level up MP3
+      loadStaticAudio('/boss-explosion.mp3', 'bossExplosion', false), // NEW: Boss explosion SFX
+      // Pass true as the 3rd argument to enable looping
       loadStaticAudio('/boss.mp3', 'bossMusic', true)
     ]);
+    // Audio is now loaded (or failed). 'isBatchAudioLoading' is false.
 
     // --- Stop Intro Music ---
     introAudio.pause();
@@ -1740,12 +1596,27 @@ const sightWords = [
     // 3. Hide loading screen
     loadingScreen.style.display = 'none';
 
-    // 4. INSTEAD OF STARTING GAME, SHOW REVIEW SCREEN
-    // We pass 'START' mode to indicate this is the pre-game review
-    showReviewScreen('START');
+    // 4. Show game elements
+    canvas.style.display = 'block';
+    controls.style.display = 'flex'; // Use 'flex' as defined in CSS
+    pauseBtn.style.display = 'flex'; // Show the pause button
+
+    // 5. Make sure our CSS var and canvas size match the current viewport
+    resize();
+
+    // 6. Try real fullscreen where supported; otherwise fall back
+    //    to the pseudo-fullscreen behavior (mobile iOS/Firefox).
+    enterFullScreen();
+
+    // 7. A small delayed resize helps once browser toolbars finish animating.
+    setTimeout(resize, 350);
+
+    // 8. Start the game logic. This is no longer async.
+    restartGame(); // No longer awaited
     
-    // Note: Canvas and Controls remain hidden until the user clicks "Start Game"
-    // inside the Review Screen logic (handleReviewAction).
+    // 9. Start the main game loop
+    lastTime = performance.now(); // Initialize lastTime right before starting
+    requestAnimationFrame(loop);
   });
 
 
@@ -1778,4 +1649,3 @@ const sightWords = [
 
   // We no longer start the game here, we wait for the play button.
 })();
-

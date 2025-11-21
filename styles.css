@@ -320,88 +320,37 @@
       padding: 0;
     }
 
-    /* --- Review / Pause Screen Styling --- */
-    #review-screen {
+    /* Pause Menu Styling */
+    #pause-menu {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.95); /* Almost solid black */
+      background-color: #000; /* Solid black to cover game */
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 2000;
-      padding: 20px;
-      box-sizing: border-box;
     }
 
-    #review-screen h1 {
+    #pause-menu h1 {
       color: #fff;
       font-family: "Press Start 2P", cursive;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      font-size: 24px;
-      text-align: center;
-    }
-
-    .instruction {
-      color: #00FF00;
-      font-family: "Press Start 2P", cursive;
-      font-size: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 40px;
       text-transform: uppercase;
     }
 
-    #review-grid {
-      display: grid;
-      /* Responsive grid: roughly 4 columns on desktop, fewer on mobile */
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 15px;
-      width: 100%;
-      max-width: 800px;
-      max-height: 60vh; /* Keep space for button */
-      overflow-y: auto; /* Scroll if screen is tiny */
-      padding: 10px;
-    }
-
-    /* The word items look like Enemy Ships */
-    .review-word {
-      background-color: #FF0000; /* Red like standard enemy */
-      color: #FFFFFF;
-      font-family: "Press Start 2P", cursive;
-      font-size: 12px;
-      padding: 15px 5px;
-      text-align: center;
-      cursor: pointer;
-      border: 2px solid transparent;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-transform: none; /* Keep case sensitivity if needed */
-    }
-
-    .review-word:active {
-      background-color: #FFFFFF;
-      color: #FF0000;
-    }
-
-    #review-action-btn {
-      margin-top: 30px;
+    #resume-btn {
       font-family: "Press Start 2P", cursive;
       font-size: 20px;
-      padding: 15px 40px;
+      padding: 15px 30px;
       cursor: pointer;
-      background: #00FF00;
-      color: #000;
-      border: none;
+      background: transparent;
+      color: #00FF00;
+      border: 4px solid #00FF00;
       text-transform: uppercase;
-    }
-
-    #review-action-btn:active {
-      background: #fff;
     }
 	
 	

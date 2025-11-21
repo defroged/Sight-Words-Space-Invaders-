@@ -1030,7 +1030,12 @@ const sightWords = [
 
             if (e.word === currentTargetWord) {
               // --- CORRECT HIT ---
-              enemyBullets = []; // Clear all existing enemy bullets
+              
+              // Only clear bullets if the enemy hit is NOT a boss
+              if (!e.isBoss) {
+                enemyBullets = [];
+              }
+
               createExplosion(b.x, b.y); // Explosion at impact point
               playSound('hitCorrect');
               

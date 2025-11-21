@@ -461,6 +461,33 @@ const sightWords = [
     });
   }
 
+  function showReviewScreen(isPauseMode) {
+    // 1. Populate the grid
+    generateReviewGrid();
+    
+    // 2. Show the screen container
+    reviewScreen.style.display = 'flex';
+
+    if (isPauseMode) {
+      // --- PAUSE MODE ---
+      isInitialReview = false;
+      reviewTitle.innerText = "PAUSED";
+      reviewActionBtn.innerText = "RESUME";
+      pauseBtn.style.display = 'none'; 
+      if (audioContext) audioContext.suspend();
+    } else {
+      // --- PRE-GAME REVIEW MODE ---
+      isInitialReview = true;
+      reviewTitle.innerText = "REVIEW WORDS";
+      reviewActionBtn.innerText = "START GAME";
+      
+      // Ensure game canvas/controls are visible in background
+      canvas.style.display = 'block';
+      controls.style.display = 'flex';
+      pauseBtn.style.display = 'none'; // Hide pause button during review
+    }
+  }
+
   function clampPlayerX() {
     const half = player.width / 2;
     if (player.x < half) player.x = half;
@@ -1510,18 +1537,9 @@ const sightWords = [
       isPaused = !isPaused;
 
       if (isPaused) {
-        // Show Review Screen in Pause Mode
-        isInitialReview = false;
-        reviewTitle.innerText = "PAUSED";
-        reviewActionBtn.innerText = "RESUME";
-        
-        generateReviewGrid(); // Ensure grid is populated
-        reviewScreen.style.display = 'flex';
-        pauseBtn.style.display = 'none'; 
-
-        if (audioContext) audioContext.suspend();
+        showReviewScreen(true); // Call our new helper function
       } else {
-        // Hide Review Screen
+        // Hide Review Screen and Resume
         reviewScreen.style.display = 'none';
         pauseBtn.style.display = 'flex';
         
@@ -1652,11 +1670,7 @@ const sightWords = [
     loadingScreen.style.display = 'none';
 
     // 4. SHOW REVIEW SCREEN (Instead of starting game immediately)
-    isInitialReview = true;
-    reviewTitle.innerText = "REVIEW WORDS";
-    reviewActionBtn.innerText = "START GAME";
-    generateReviewGrid();
-    reviewScreen.style.display = 'flex';
+    showReviewScreen(false); // Call our new helper function
 
     // 5. Make sure our CSS var matches viewport
     resize();

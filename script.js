@@ -37,12 +37,18 @@
   const startScreen = document.getElementById('start-screen');
   const loadingScreen = document.getElementById('loading-screen'); // NEW
   const playBtn = document.getElementById('play-btn');
-  
+   
+  // --- NEW: Pause Elements ---
+  const pauseBtn = document.getElementById('pause-btn');
+  const pauseMenu = document.getElementById('pause-menu');
+  const resumeBtn = document.getElementById('resume-btn');
+  let isPaused = false;
+
   // --- NEW: Game Over Elements ---
   const gameOverScreen = document.getElementById('game-over-screen');
   const gameOverReasonText = document.getElementById('game-over-reason');
   const gameOverScoreText = document.getElementById('game-over-score');
-  const restartBtn = document.getElementById('restart-btn'); 
+  const restartBtn = document.getElementById('restart-btn');
 
   let width = window.innerWidth;
   let height = window.innerHeight;
@@ -640,6 +646,9 @@ const sightWords = [
       currentMusicSource = null;
     }
 
+    // Hide pause button on game over
+    pauseBtn.style.display = 'none';
+
     // Play the appropriate sound based on the reason
     switch (reason) {
       case "Wrong word!":
@@ -665,11 +674,15 @@ const sightWords = [
 
     // --- NEW: Hide Game Over Screen ---
     gameOverScreen.style.display = 'none';
+    
+    // Show pause button again
+    pauseBtn.style.display = 'flex';
 
     level = 1;
     score = 0;
     hitsThisLevel = 0;
     gameOver = false;
+    isPaused = false; // Reset pause state
     isBossIntro = false; // --- NEW: Reset intro state
     gameOverReason = "";
     bullets = [];
@@ -1463,6 +1476,33 @@ const sightWords = [
     restartBtn.addEventListener('click', onRestartPress);
     restartBtn.addEventListener('touchstart', onRestartPress, { passive: false });
 
+    // --- PAUSE BUTTON LOGIC ---
+    const togglePause = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (gameOver) return;
+
+      isPaused = !isPaused;
+
+      if (isPaused) {
+        pauseMenu.style.display = 'flex';
+        pauseBtn.style.display = 'none'; // Hide small button while menu is open
+        // Optional: Suspend audio context so sound stops
+        if (audioContext) audioContext.suspend();
+      } else {
+        pauseMenu.style.display = 'none';
+        pauseBtn.style.display = 'flex';
+        // Resume audio
+        if (audioContext) audioContext.resume();
+        // Reset lastTime to prevent a huge dt jump
+        lastTime = performance.now();
+      }
+    };
+
+    pauseBtn.addEventListener('click', togglePause);
+    pauseBtn.addEventListener('touchstart', togglePause, { passive: false });
+    resumeBtn.addEventListener('click', togglePause);
+    resumeBtn.addEventListener('touchstart', togglePause, { passive: false });
+
     // --- NEW: Keyboard Listeners ---
     window.addEventListener('keydown', (e) => {
       // Check for arrow keys to move
@@ -1560,6 +1600,7 @@ const sightWords = [
     // 4. Show game elements
     canvas.style.display = 'block';
     controls.style.display = 'flex'; // Use 'flex' as defined in CSS
+    pauseBtn.style.display = 'flex'; // Show the pause button
 
     // 5. Make sure our CSS var and canvas size match the current viewport
     resize();
@@ -1583,6 +1624,16 @@ const sightWords = [
   // Main loop
   let lastTime = 0;
   function loop(timestamp) {
+    // If paused, we skip update/draw but keep requesting frames
+    // so we can resume smoothly later.
+    if (isPaused) {
+      // We still update lastTime so that when we unpause, 
+      // 'dt' doesn't become huge (the time elapsed during pause).
+      lastTime = timestamp; 
+      requestAnimationFrame(loop);
+      return;
+    }
+
     // Ensure dt is reasonable, especially on the first frame
     let dt = (timestamp - lastTime) / 1000;
     if (dt > 0.1) dt = 0.1; // Cap delta time to prevent large jumps

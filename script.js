@@ -109,7 +109,6 @@ let bullets = [];
   // --- Get button elements from the DOM ---
   const leftBtn = document.getElementById('left-btn');
   const rightBtn = document.getElementById('right-btn');
-  const shootBtn = document.getElementById('shoot-btn');
   const replayBtn = document.getElementById('replay-btn'); // NEW
 
 const sightWords = [
@@ -1417,24 +1416,28 @@ const sightWords = [
     rightBtn.addEventListener('mouseup', (e) => endMove(e, 'right'), { passive: false });
     rightBtn.addEventListener('mouseleave', (e) => endMove(e, 'right'), { passive: false });
 
-    // --- Shoot Listener ---
-    const onShootPress = (e) => { // No longer async
-      // e.preventDefault() is crucial to prevent ghost mouse events on touch
-      if (e.cancelable) e.preventDefault();
+    // --- Tap to Shoot Listener (Global) ---
+    const onScreenTap = (e) => {
+      // 1. Ignore taps if the target is one of our buttons (Left, Right, Replay, Restart)
+      if (e.target.closest('button')) return;
 
-      // FIX: Resume AudioContext immediately on interaction.
+      // 2. Ignore taps if on the Start Screen (Play button handles that)
+      if (startScreen.style.display !== 'none') return;
+
+      // 3. Resume AudioContext immediately on interaction
       if (audioContext && audioContext.state === 'suspended') {
         audioContext.resume();
       }
 
-      // Only shoot, do not restart
+      // 4. Trigger Shoot
       if (!gameOver) {
         shoot();
       }
     };
 
-    shootBtn.addEventListener('touchstart', onShootPress, { passive: false });
-    shootBtn.addEventListener('mousedown', onShootPress, { passive: false });
+    // Attach to window to catch clicks anywhere
+    window.addEventListener('touchstart', onScreenTap, { passive: false });
+    window.addEventListener('mousedown', onScreenTap, { passive: false });
 
     // --- NEW: Restart Button Listener ---
     const onRestartPress = (e) => {
